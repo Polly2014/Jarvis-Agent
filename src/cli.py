@@ -560,35 +560,56 @@ def run_chat_loop():
             # 正常 LLM 对话
             messages.append({"role": "user", "content": user_input})
             
-            with console.status("[bold cyan]Jarvis 思考中...[/bold cyan]"):
-                try:
-                    with httpx.Client(timeout=60.0, trust_env=False) as client:
-                        resp = client.post(
-                            f"{base_url}/v1/chat/completions",
-                            headers={
-                                "Authorization": f"Bearer {auth_token}",
-                                "Content-Type": "application/json"
-                            },
-                            json={
-                                "model": model,
-                                "max_tokens": 2000,
-                                "messages": [
-                                    {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
-                                    *messages[-10:]
-                                ]
-                            }
-                        )
-                    
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        reply = data["choices"][0]["message"]["content"]
-                        messages.append({"role": "assistant", "content": reply})
-                        console.print(f"\n[bold cyan]Jarvis[/bold cyan]: {reply}\n")
-                    else:
-                        console.print(f"\n[red]API 错误: {resp.status_code}[/red]\n")
+            # Streaming 输出
+            console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
+            full_reply = ""
+            
+            try:
+                with httpx.Client(timeout=120.0, trust_env=False) as client:
+                    with client.stream(
+                        "POST",
+                        f"{base_url}/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {auth_token}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": model,
+                            "max_tokens": 2000,
+                            "stream": True,
+                            "messages": [
+                                {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
+                                *messages[-10:]
+                            ]
+                        }
+                    ) as response:
+                        if response.status_code != 200:
+                            console.print(f"[red]API 错误: {response.status_code}[/red]\n")
+                            continue
                         
-                except Exception as e:
-                    console.print(f"\n[red]连接错误: {e}[/red]\n")
+                        for line in response.iter_lines():
+                            if not line or not line.startswith("data: "):
+                                continue
+                            
+                            data_str = line[6:]  # 去掉 "data: " 前缀
+                            if data_str == "[DONE]":
+                                break
+                            
+                            try:
+                                chunk = json.loads(data_str)
+                                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    print(content, end="", flush=True)
+                                    full_reply += content
+                            except json.JSONDecodeError:
+                                continue
+                
+                print("\n")  # 换行
+                messages.append({"role": "assistant", "content": full_reply})
+                
+            except Exception as e:
+                console.print(f"\n[red]连接错误: {e}[/red]\n")
         
         except KeyboardInterrupt:
             console.print("\n[dim]再见！(daemon 仍在后台运行)[/dim] 👋")
@@ -648,7 +669,7 @@ def main(
 
 
 def _do_ask(question: str):
-    """内部：单次提问"""
+    """内部：单次提问（支持 streaming）"""
     import httpx
     
     config_path = JARVIS_HOME / "config.json"
@@ -664,35 +685,52 @@ def _do_ask(question: str):
     auth_token = llm_config.get("auth_token", "")
     
     console.print(f"\n[bold green]你[/bold green]: {question}")
+    console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
     
-    with console.status("[bold cyan]Jarvis 思考中...[/bold cyan]"):
-        try:
-            with httpx.Client(timeout=60.0, trust_env=False) as client:
-                resp = client.post(
-                    f"{base_url}/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {auth_token}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": model,
-                        "max_tokens": 2000,
-                        "messages": [
-                            {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
-                            {"role": "user", "content": question}
-                        ]
-                    }
-                )
-            
-            if resp.status_code == 200:
-                data = resp.json()
-                reply = data["choices"][0]["message"]["content"]
-                console.print(f"\n[bold cyan]Jarvis[/bold cyan]: {reply}")
-            else:
-                console.print(f"\n[red]API 错误: {resp.status_code}[/red]")
+    try:
+        with httpx.Client(timeout=120.0, trust_env=False) as client:
+            with client.stream(
+                "POST",
+                f"{base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {auth_token}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 2000,
+                    "stream": True,
+                    "messages": [
+                        {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
+                        {"role": "user", "content": question}
+                    ]
+                }
+            ) as response:
+                if response.status_code != 200:
+                    console.print(f"[red]API 错误: {response.status_code}[/red]")
+                    return
                 
-        except Exception as e:
-            console.print(f"\n[red]连接错误: {e}[/red]")
+                for line in response.iter_lines():
+                    if not line or not line.startswith("data: "):
+                        continue
+                    
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            print(content, end="", flush=True)
+                    except json.JSONDecodeError:
+                        continue
+        
+        print("\n")  # 换行
+        
+    except Exception as e:
+        console.print(f"\n[red]连接错误: {e}[/red]")
 
 
 # ============================================================
