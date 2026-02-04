@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "jarvis-agent"
+version = "0.1.0"
+description = "数码宝贝式 AI Agent —— 从空白开始，探索进化，成为你的专属伙伴"
+authors = ["Polly Wang <polly@polly.wang>"]
+readme = "CLAUDE.md"
+packages = [{include = "src"}]
+
+[tool.poetry.scripts]
+jarvis = "src.cli:app"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+httpx = "^0.26.0"
+apscheduler = "^3.10.4"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+python-dotenv = "^1.0.0"
+aiosqlite = "^0.19.0"
+typer = "^0.15.0"
+rich = "^13.7.0"
+watchdog = "^4.0.0"
+requests = "^2.32.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.23.0"
+black = "^24.1.0"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

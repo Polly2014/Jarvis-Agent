@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 服务标识 -->
+    <key>Label</key>
+    <string>com.polly.jarvis</string>
+    
+    <!-- 程序路径和参数 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>-m</string>
+        <string>src.daemon.daemon</string>
+    </array>
+    
+    <!-- 工作目录 -->
+    <key>WorkingDirectory</key>
+    <string>/Users/polly/Downloads/Sublime_Workspace/Zola_Workspace/www.polly.com/Jarvis-Agent</string>
+    
+    <!-- 开机自启 -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- 崩溃后自动重启 -->
+    <key>KeepAlive</key>
+    <true/>
+    
+    <!-- 启动延迟（秒）- 等系统稳定后再启动 -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    
+    <!-- 日志输出 -->
+    <key>StandardOutPath</key>
+    <string>/Users/polly/.jarvis/logs/daemon.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/polly/.jarvis/logs/daemon.log</string>
+    
+    <!-- 环境变量 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/polly/Downloads/Sublime_Workspace/Zola_Workspace/www.polly.com/Jarvis-Agent</string>
+    </dict>
+    
+    <!-- 进程优先级（可选，默认为 0） -->
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>

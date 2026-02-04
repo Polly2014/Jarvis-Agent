@@ -1,0 +1,18 @@
+[Unit]
+Description=Jarvis Agent - 数码宝贝式 AI Agent
+After=network.target
+
+[Service]
+Type=simple
+User=polly
+Group=polly
+WorkingDirectory=/home/polly/Jarvis-Agent
+Environment="PATH=/home/polly/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/polly/.local/bin/poetry run jarvis serve
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
