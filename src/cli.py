@@ -97,6 +97,49 @@ def get_status_summary() -> tuple[str, str, int]:
     return status_emoji, status_text, unread_count
 
 
+def get_unread_discoveries(limit: int = 3) -> list[dict]:
+    """
+    获取未读发现列表（按重要性排序）
+    Returns: list of discovery dicts with title, importance, timestamp, type
+    """
+    discoveries_path = get_discoveries_path()
+    if not discoveries_path.exists():
+        return []
+    
+    try:
+        with open(discoveries_path, "r") as f:
+            data = json.load(f)
+        
+        # 过滤未读，按重要性降序排序
+        unread = [
+            d for d in data.get("discoveries", [])
+            if not d.get("acknowledged")
+        ]
+        unread.sort(key=lambda x: x.get("importance", 3), reverse=True)
+        return unread[:limit]
+    except (json.JSONDecodeError, KeyError):
+        return []
+
+
+def format_discovery_time(iso_timestamp: str) -> str:
+    """格式化发现时间为友好显示"""
+    try:
+        dt = datetime.fromisoformat(iso_timestamp)
+        now = datetime.now()
+        
+        # 今天的显示时间
+        if dt.date() == now.date():
+            return dt.strftime("%H:%M")
+        # 昨天
+        elif (now.date() - dt.date()).days == 1:
+            return "昨天"
+        # 更早
+        else:
+            return dt.strftime("%m-%d")
+    except (ValueError, TypeError):
+        return "?"
+
+
 def is_first_run() -> bool:
     """检查是否首次运行"""
     config_path = get_config_path()
@@ -141,16 +184,35 @@ def show_welcome_banner():
     """显示欢迎横幅和状态"""
     status_emoji, status_text, unread = get_status_summary()
     
-    # 构建状态行
-    status_line = f"状态: {status_emoji} {status_text}"
-    if unread > 0:
-        status_line += f" | 未读: [yellow]{unread}[/yellow] 条发现"
+    # 紧凑的头部
+    header = f"[bold cyan]🥚 Jarvis[/bold cyan] v{VERSION}  {status_emoji} {status_text}"
+    console.print(Panel(header, border_style="cyan", padding=(0, 1)))
     
-    console.print(Panel(
-        f"[bold cyan]🥚 Jarvis[/bold cyan] v{VERSION}\n{status_line}",
-        border_style="cyan",
-        padding=(0, 1)
-    ))
+    # 如果有未读发现，显示详情
+    if unread > 0:
+        discoveries = get_unread_discoveries(limit=3)
+        if discoveries:
+            console.print()
+            console.print(f"[bold yellow]📋 最近发现[/bold yellow] [dim]({unread}条未读)[/dim]")
+            
+            for d in discoveries:
+                # 重要性星级
+                importance = d.get("importance", 3)
+                stars = "⭐" * min(importance, 5)
+                
+                # 时间
+                time_str = format_discovery_time(d.get("timestamp", ""))
+                
+                # 标题（截断过长的）
+                title = d.get("title", "未知发现")
+                if len(title) > 40:
+                    title = title[:37] + "..."
+                
+                console.print(f"  {stars} [dim][{time_str}][/dim] {title}")
+            
+            # 操作提示
+            console.print(f"  [dim]└─ /discoveries 查看全部 · /discoveries --ack 标记已读[/dim]")
+            console.print()
 
 
 def show_slash_help():
