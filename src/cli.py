@@ -421,10 +421,79 @@ def _do_init():
     console.print(f"\n✅ 配置已保存: [green]{config_path}[/green]")
 
 
+# ============================================================
+# 智能补全
+# ============================================================
+
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.styles import Style
+
+
+class JarvisCompleter(Completer):
+    """Jarvis 斜杠命令补全器"""
+    
+    SLASH_COMMANDS = {
+        "/start": "启动 daemon 后台监控",
+        "/rest": "停止 daemon",
+        "/status": "查看状态",
+        "/discoveries": "查看发现记录",
+        "/explore": "探索目录",
+        "/projects": "列出已发现项目",
+        "/skills": "列出 skills",
+        "/init": "初始化配置",
+        "/help": "显示帮助",
+        "/exit": "退出聊天",
+        "/quit": "退出聊天",
+    }
+    
+    def get_completions(self, document, complete_event):
+        text = document.text_before_cursor
+        
+        # 只在输入 / 开头时补全
+        if text.startswith("/"):
+            # 提取已输入的命令部分
+            word = text.lower()
+            
+            for cmd, desc in self.SLASH_COMMANDS.items():
+                if cmd.startswith(word):
+                    # 计算需要补全的部分
+                    yield Completion(
+                        cmd,
+                        start_position=-len(word),
+                        display=f"{cmd}",
+                        display_meta=desc
+                    )
+
+
+def create_prompt_session() -> PromptSession:
+    """创建带补全的 PromptSession"""
+    
+    # 自定义样式
+    style = Style.from_dict({
+        'prompt': 'bold #00ff00',  # 绿色加粗
+        'completion-menu.completion': 'bg:#333333 #ffffff',
+        'completion-menu.completion.current': 'bg:#00aa00 #ffffff',
+        'completion-menu.meta.completion': 'bg:#333333 #888888',
+        'completion-menu.meta.completion.current': 'bg:#00aa00 #ffffff',
+    })
+    
+    # 历史记录
+    history_path = JARVIS_HOME / "chat_history"
+    
+    return PromptSession(
+        completer=JarvisCompleter(),
+        style=style,
+        history=FileHistory(str(history_path)),
+        complete_while_typing=False,  # 只在按 Tab 时补全
+    )
+
+
 def run_chat_loop():
     """
     统一的聊天循环
-    支持：斜杠命令、自然语言控制、LLM 对话
+    支持：斜杠命令补全、自然语言控制、LLM 对话
     """
     import httpx
     
@@ -452,11 +521,15 @@ def run_chat_loop():
     
     messages = []
     
-    console.print("[dim]输入 /help 查看命令，输入 /exit 退出[/dim]\n")
+    # 创建带补全的 session
+    session = create_prompt_session()
+    
+    console.print("[dim]输入 / 后按 Tab 补全命令，↑↓ 查看历史[/dim]\n")
     
     while True:
         try:
-            user_input = Prompt.ask("[bold green]你[/bold green]")
+            # 使用 prompt_toolkit 获取输入（支持补全和历史）
+            user_input = session.prompt("你> ").strip()
             
             if not user_input.strip():
                 continue
