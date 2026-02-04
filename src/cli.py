@@ -264,6 +264,9 @@ def handle_slash_command(cmd: str) -> bool:
     elif command == "/discoveries":
         _do_discoveries()
     
+    elif command == "/recall":
+        _do_recall(args)
+    
     elif command == "/explore":
         _do_explore(args)
     
@@ -384,6 +387,56 @@ def _do_discoveries():
         console.print(f"[red]读取失败: {e}[/red]")
 
 
+def _do_recall(query: Optional[str] = None):
+    """内部：搜索记忆（使用 MemoryIndex）"""
+    from .memory import MemoryIndex
+    
+    index_path = JARVIS_HOME / "index.db"
+    
+    if not index_path.exists():
+        console.print("[yellow]💭 记忆索引尚未创建[/yellow]")
+        console.print("[dim]启动 daemon 后会自动记录发现到记忆中[/dim]")
+        return
+    
+    index = MemoryIndex(index_path)
+    
+    if query is None:
+        # 无查询：显示最近记忆
+        console.print("\n[bold]🧠 最近记忆:[/bold]")
+        results = index.get_recent(limit=5)
+        if not results:
+            console.print("[yellow]暂无记忆[/yellow]")
+            return
+        
+        for r in results:
+            importance_stars = "⭐" * r.importance
+            console.print(f"  [{r.date}] [bold]{r.title}[/bold] {importance_stars}")
+            if r.summary:
+                summary = r.summary[:60] + "..." if len(r.summary) > 60 else r.summary
+                console.print(f"     [dim]{summary}[/dim]")
+            if r.tags:
+                tags_str = " ".join(f"[cyan]#{t}[/cyan]" for t in r.tags[:3])
+                console.print(f"     {tags_str}")
+    else:
+        # 有查询：全文搜索
+        console.print(f"\n[bold]🔍 搜索: [cyan]{query}[/cyan][/bold]\n")
+        results = index.recall(query, limit=10)
+        
+        if not results:
+            console.print("[yellow]未找到相关记忆[/yellow]")
+            console.print("[dim]试试其他关键词？[/dim]")
+            return
+        
+        for i, r in enumerate(results, 1):
+            importance_stars = "⭐" * r.importance
+            console.print(f"  {i}. [{r.date}] [bold]{r.title}[/bold] {importance_stars}")
+            if r.summary:
+                summary = r.summary[:80] + "..." if len(r.summary) > 80 else r.summary
+                console.print(f"      [dim]{summary}[/dim]")
+        
+        console.print(f"\n[dim]共 {len(results)} 条相关记忆[/dim]")
+
+
 def _do_explore(path_arg: Optional[str] = None):
     """内部：探索目录"""
     from .explorer import scan_directory, format_discovery_report
@@ -501,6 +554,7 @@ class JarvisCompleter(Completer):
         "/rest": "停止 daemon",
         "/status": "查看状态",
         "/discoveries": "查看发现记录",
+        "/recall": "搜索记忆 (用法: /recall 关键词)",
         "/explore": "探索目录",
         "/projects": "列出已发现项目",
         "/skills": "列出 skills",
@@ -703,6 +757,33 @@ def main(
     """
     # 如果有子命令，不执行默认行为
     if ctx.invoked_subcommand is not None:
+        return
+    
+    # 已知子命令列表（避免被当作 question 参数）
+    # 这是 Typer 的一个已知问题：有位置参数时子命令可能被误解析
+    KNOWN_COMMANDS = {
+        "start", "rest", "status", "discoveries", "init", 
+        "explore", "projects", "recall", "chat", "ask", "skills", "serve"
+    }
+    if question and question.lower() in KNOWN_COMMANDS:
+        # 这是子命令，手动分发
+        cmd_map = {
+            "start": _do_start_daemon,
+            "rest": _do_rest,
+            "status": _do_status,
+            "discoveries": _do_discoveries,
+            "init": _do_init,
+            "explore": lambda: _do_explore(None),
+            "projects": lambda: console.print("[yellow]功能开发中...[/yellow]"),
+            "recall": lambda: _do_recall(None),
+            "chat": run_chat_loop,
+            "skills": _do_skills,
+        }
+        handler = cmd_map.get(question.lower())
+        if handler:
+            handler()
+        else:
+            console.print(f"[yellow]请使用: jarvis {question} [参数][/yellow]")
         return
     
     ensure_jarvis_home()
@@ -1175,6 +1256,64 @@ def projects():
     """📂 列出已发现的项目"""
     # TODO: 从数据库读取
     console.print("[yellow]功能开发中...[/yellow]")
+
+
+@app.command()
+def recall(
+    query: Optional[str] = typer.Argument(None, help="搜索关键词"),
+    limit: int = typer.Option(10, "-n", "--limit", help="结果数量"),
+    important: bool = typer.Option(False, "-i", "--important", help="只显示重要记忆(⭐⭐⭐+)")
+):
+    """🧠 搜索记忆
+    
+    示例:
+      jarvis recall              显示最近记忆
+      jarvis recall "项目"       搜索包含"项目"的记忆
+      jarvis recall -i           只显示重要记忆
+    """
+    from .memory import MemoryIndex
+    
+    ensure_jarvis_home()
+    index_path = JARVIS_HOME / "index.db"
+    
+    if not index_path.exists():
+        console.print("[yellow]💭 记忆索引尚未创建[/yellow]")
+        console.print("[dim]启动 daemon 后会自动记录发现到记忆中[/dim]")
+        raise typer.Exit(0)
+    
+    index = MemoryIndex(index_path)
+    
+    if query:
+        # 全文搜索
+        console.print(f"\n[bold]🔍 搜索: [cyan]{query}[/cyan][/bold]\n")
+        results = index.recall(query, limit=limit)
+    elif important:
+        # 重要记忆
+        console.print("\n[bold]⭐ 重要记忆:[/bold]\n")
+        results = index.get_important(min_importance=3, limit=limit)
+    else:
+        # 最近记忆
+        console.print("\n[bold]🧠 最近记忆:[/bold]\n")
+        results = index.get_recent(limit=limit)
+    
+    if not results:
+        console.print("[yellow]暂无匹配的记忆[/yellow]")
+        raise typer.Exit(0)
+    
+    # 创建表格
+    table = Table(box=None, padding=(0, 1))
+    table.add_column("日期", style="dim")
+    table.add_column("标题", style="bold")
+    table.add_column("重要性")
+    table.add_column("摘要", style="dim")
+    
+    for r in results:
+        stars = "⭐" * r.importance
+        summary = r.summary[:40] + "..." if r.summary and len(r.summary) > 40 else (r.summary or "")
+        table.add_row(r.date, r.title, stars, summary)
+    
+    console.print(table)
+    console.print(f"\n[dim]共 {len(results)} 条记忆[/dim]")
 
 
 @app.command()

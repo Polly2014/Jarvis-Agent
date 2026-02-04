@@ -37,6 +37,7 @@ except ImportError:
 
 from .discovery import Discovery, DiscoveryType, DiscoveryStore
 from .notifier import Notifier, NotificationConfig
+from ..memory import MemoryWriter, MemoryEntry, MemoryIndex, IndexEntry
 
 
 @dataclass
@@ -236,6 +237,13 @@ class JarvisDaemon:
         
         discoveries_path = os.path.join(self.config.jarvis_home, "discoveries.json")
         self.discovery_store = DiscoveryStore(discoveries_path)
+        
+        # 🆕 Phase 2: 混合记忆系统
+        # Markdown 存内容，SQLite 做索引
+        memory_path = Path(self.config.jarvis_home) / "memory"
+        index_path = Path(self.config.jarvis_home) / "index.db"
+        self.memory_writer = MemoryWriter(memory_path)
+        self.memory_index = MemoryIndex(index_path)
         
         self.life_signs = LifeSigns()
         self._state_path = os.path.join(self.config.jarvis_home, "state.json")
@@ -567,15 +575,39 @@ class JarvisDaemon:
     
     def _process_discovery(self, discovery: Discovery):
         """处理发现"""
-        # 保存到存储
+        # 1. 保存到 discoveries.json（保持向后兼容）
         self.discovery_store.add(discovery)
         
-        # 更新统计
+        # 2. 🆕 写入 Markdown 日志（编年体）
+        entry = MemoryEntry(
+            timestamp=discovery.timestamp,
+            title=discovery.title,
+            content=discovery.content,
+            importance=discovery.importance,
+            entry_type="discovery",
+            tags=discovery.source_files[:5] if discovery.source_files else None,
+        )
+        file_path = self.memory_writer.append_to_daily(entry)
+        
+        # 3. 🆕 添加到搜索索引
+        index_entry = IndexEntry(
+            id=discovery.id,
+            entry_type="discovery",
+            file_path=str(file_path),
+            date=discovery.timestamp.date().isoformat(),
+            title=discovery.title,
+            tags=discovery.source_files[:5] if discovery.source_files else [],
+            importance=discovery.importance,
+            summary=discovery.content[:200] if discovery.content else ""
+        )
+        self.memory_index.add(index_entry)
+        
+        # 4. 更新统计
         self.life_signs.discoveries_today += 1
         if discovery.importance >= 4:
             self.life_signs.important_discoveries_today += 1
         
-        # 发送通知
+        # 5. 发送通知
         if discovery.importance >= self.config.notification_min_importance:
             self.notifier.notify(
                 title=discovery.title,
@@ -585,6 +617,7 @@ class JarvisDaemon:
             )
         
         print(f"[Daemon] 新发现: {discovery.title} (重要性: {discovery.importance})")
+        print(f"[Daemon]   └─ 已记录到: {file_path.name}")
 
 
 async def run_daemon():
