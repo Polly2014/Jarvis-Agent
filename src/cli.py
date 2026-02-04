@@ -17,9 +17,13 @@ import sys
 app = typer.Typer(
     name="jarvis",
     help="🥚 数码宝贝式 AI Agent —— 从空白开始，探索进化，成为你的专属伙伴",
-    no_args_is_help=True
+    invoke_without_command=True,
+    no_args_is_help=False
 )
 console = Console()
+
+# 版本号
+VERSION = "0.1.0"
 
 # Jarvis 家目录
 JARVIS_HOME = Path.home() / ".jarvis"
@@ -43,6 +47,579 @@ def ensure_jarvis_home():
     (JARVIS_HOME / "logs").mkdir(exist_ok=True)
     (JARVIS_HOME / "memory").mkdir(exist_ok=True)
     (JARVIS_HOME / "skills").mkdir(exist_ok=True)
+
+
+def get_status_summary() -> tuple[str, str, int]:
+    """
+    获取状态摘要
+    Returns: (status_emoji, status_text, unread_count)
+    """
+    state_path = get_state_path()
+    discoveries_path = get_discoveries_path()
+    
+    # 检查 daemon 状态
+    if not state_path.exists():
+        return "⚪", "未启动", 0
+    
+    try:
+        with open(state_path, "r") as f:
+            state = json.load(f)
+        
+        status = state.get("status", "unknown")
+        last_hb = state.get("last_heartbeat")
+        
+        if status == "running" and last_hb:
+            last_heartbeat = datetime.fromisoformat(last_hb)
+            if (datetime.now() - last_heartbeat).total_seconds() < 120:
+                status_emoji, status_text = "🟢", "运行中"
+            else:
+                status_emoji, status_text = "🔴", "无响应"
+        elif status == "resting":
+            status_emoji, status_text = "😴", "休眠中"
+        else:
+            status_emoji, status_text = "⚪", "已停止"
+    except (json.JSONDecodeError, KeyError):
+        status_emoji, status_text = "⚪", "未知"
+    
+    # 统计未读发现
+    unread_count = 0
+    if discoveries_path.exists():
+        try:
+            with open(discoveries_path, "r") as f:
+                data = json.load(f)
+            unread_count = sum(
+                1 for d in data.get("discoveries", [])
+                if not d.get("acknowledged")
+            )
+        except (json.JSONDecodeError, KeyError):
+            pass
+    
+    return status_emoji, status_text, unread_count
+
+
+def is_first_run() -> bool:
+    """检查是否首次运行"""
+    config_path = get_config_path()
+    return not config_path.exists()
+
+
+def detect_natural_intent(text: str) -> Optional[str]:
+    """
+    检测自然语言中的控制意图
+    Returns: 'start', 'rest', 'status' 或 None
+    """
+    text_lower = text.lower()
+    
+    # 启动意图
+    start_triggers = [
+        "帮我挂机", "开始挂机", "上线", "启动", "start",
+        "帮我守着", "开始监控", "wake up", "后台运行"
+    ]
+    if any(t in text_lower for t in start_triggers):
+        return "start"
+    
+    # 休眠意图
+    rest_triggers = [
+        "休息", "下线", "停止", "休眠", "stop", "rest",
+        "不用守了", "停止监控", "go to sleep"
+    ]
+    if any(t in text_lower for t in rest_triggers):
+        return "rest"
+    
+    # 状态查询意图
+    status_triggers = [
+        "你在干嘛", "什么状态", "怎么样了", "status",
+        "在运行吗", "你好吗", "how are you"
+    ]
+    if any(t in text_lower for t in status_triggers):
+        return "status"
+    
+    return None
+
+
+def show_welcome_banner():
+    """显示欢迎横幅和状态"""
+    status_emoji, status_text, unread = get_status_summary()
+    
+    # 构建状态行
+    status_line = f"状态: {status_emoji} {status_text}"
+    if unread > 0:
+        status_line += f" | 未读: [yellow]{unread}[/yellow] 条发现"
+    
+    console.print(Panel(
+        f"[bold cyan]🥚 Jarvis[/bold cyan] v{VERSION}\n{status_line}",
+        border_style="cyan",
+        padding=(0, 1)
+    ))
+
+
+def show_slash_help():
+    """显示斜杠命令帮助"""
+    help_text = """
+[bold]斜杠命令:[/bold]
+  /start       启动 daemon 后台监控
+  /rest        停止 daemon
+  /status      查看状态
+  /discoveries 查看发现记录
+  /explore     探索目录
+  /projects    列出已发现项目
+  /skills      列出 skills
+  /init        初始化配置
+  /help        显示本帮助
+  /exit /quit  退出聊天
+
+[dim]也可以直接用自然语言："帮我挂机"、"休息"、"你在干嘛"[/dim]
+"""
+    console.print(help_text)
+
+
+def handle_slash_command(cmd: str) -> bool:
+    """
+    处理斜杠命令
+    Returns: True 表示已处理，False 表示需要退出
+    """
+    cmd = cmd.strip().lower()
+    parts = cmd.split(maxsplit=1)
+    command = parts[0]
+    args = parts[1] if len(parts) > 1 else None
+    
+    if command in ("/exit", "/quit", "/q"):
+        console.print("\n[dim]再见！随时呼唤我。[/dim] 👋")
+        return False
+    
+    elif command == "/help":
+        show_slash_help()
+    
+    elif command == "/status":
+        _do_status()
+    
+    elif command == "/start":
+        _do_start_daemon()
+    
+    elif command == "/rest":
+        _do_rest()
+    
+    elif command == "/discoveries":
+        _do_discoveries()
+    
+    elif command == "/explore":
+        _do_explore(args)
+    
+    elif command == "/projects":
+        console.print("[yellow]📂 功能开发中...[/yellow]")
+    
+    elif command == "/skills":
+        _do_skills()
+    
+    elif command == "/init":
+        _do_init()
+    
+    else:
+        console.print(f"[red]未知命令: {command}[/red]")
+        console.print("[dim]输入 /help 查看可用命令[/dim]")
+    
+    return True
+
+
+def _do_status():
+    """内部：执行状态查看"""
+    status_emoji, status_text, unread = get_status_summary()
+    
+    state_path = get_state_path()
+    if state_path.exists():
+        try:
+            with open(state_path, "r") as f:
+                state = json.load(f)
+            last_hb = state.get("last_heartbeat")
+            if last_hb:
+                last_heartbeat = datetime.fromisoformat(last_hb)
+                time_since = (datetime.now() - last_heartbeat).total_seconds()
+                if time_since < 60:
+                    hb_str = f"{int(time_since)} 秒前"
+                else:
+                    hb_str = f"{int(time_since // 60)} 分钟前"
+            else:
+                hb_str = "无"
+        except:
+            hb_str = "无"
+    else:
+        hb_str = "无"
+    
+    console.print(f"\n{status_emoji} 状态: [bold]{status_text}[/bold]")
+    console.print(f"   心跳: {hb_str}")
+    if unread > 0:
+        console.print(f"   未读: [yellow]{unread}[/yellow] 条发现")
+
+
+def _do_start_daemon():
+    """内部：启动 daemon"""
+    status_emoji, status_text, _ = get_status_summary()
+    
+    if status_emoji == "🟢":
+        console.print("[yellow]⚠️  已经在运行中[/yellow]")
+        return
+    
+    console.print("[cyan]🫀 启动 Jarvis Daemon...[/cyan]")
+    
+    python_path = sys.executable
+    log_path = JARVIS_HOME / "logs" / "daemon.log"
+    
+    cmd = f'nohup {python_path} -m src.daemon.daemon > {log_path} 2>&1 &'
+    subprocess.Popen(cmd, shell=True, cwd=Path(__file__).parent.parent)
+    
+    console.print("[green]✅ 已在后台启动[/green]")
+
+
+def _do_rest():
+    """内部：停止 daemon"""
+    state_path = get_state_path()
+    
+    if not state_path.exists():
+        console.print("[yellow]Jarvis 似乎没有在运行[/yellow]")
+        return
+    
+    try:
+        with open(state_path, "r") as f:
+            state = json.load(f)
+        
+        state["status"] = "resting"
+        state["last_heartbeat"] = datetime.now().isoformat()
+        
+        with open(state_path, "w") as f:
+            json.dump(state, f, indent=2)
+        
+        console.print("[cyan]😴 Jarvis 正在休眠...[/cyan]")
+    except Exception as e:
+        console.print(f"[red]操作失败: {e}[/red]")
+
+
+def _do_discoveries():
+    """内部：查看发现"""
+    discoveries_path = get_discoveries_path()
+    
+    if not discoveries_path.exists():
+        console.print("[yellow]还没有任何发现[/yellow]")
+        return
+    
+    try:
+        with open(discoveries_path, "r") as f:
+            data = json.load(f)
+        
+        all_discoveries = data.get("discoveries", [])
+        if not all_discoveries:
+            console.print("[yellow]还没有任何发现[/yellow]")
+            return
+        
+        console.print("\n[bold]📋 最近发现:[/bold]")
+        for d in all_discoveries[:5]:
+            ts = datetime.fromisoformat(d.get("timestamp", datetime.now().isoformat()))
+            time_str = ts.strftime("%m/%d %H:%M")
+            stars = "⭐" * d.get("importance", 3)
+            title = d.get("title", "")[:30]
+            ack = "✓" if d.get("acknowledged") else ""
+            console.print(f"  [{time_str}] {title} {stars} {ack}")
+    except Exception as e:
+        console.print(f"[red]读取失败: {e}[/red]")
+
+
+def _do_explore(path_arg: Optional[str] = None):
+    """内部：探索目录"""
+    from .explorer import scan_directory, format_discovery_report
+    
+    path = path_arg
+    if path is None:
+        config_path = get_config_path()
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                watch_paths = config.get("watch_paths", [])
+                if watch_paths:
+                    path = watch_paths[0]
+            except:
+                pass
+    
+    if path is None:
+        path = str(Path.cwd())
+    
+    target_path = Path(path).expanduser().resolve()
+    
+    if not target_path.exists():
+        console.print(f"[red]❌ 目录不存在: {target_path}[/red]")
+        return
+    
+    console.print(f"\n🔍 正在探索 [cyan]{target_path}[/cyan]...")
+    projects = scan_directory(target_path)
+    
+    if not projects:
+        console.print("[yellow]没有发现可识别的项目[/yellow]")
+        return
+    
+    report = format_discovery_report(projects)
+    console.print(report)
+
+
+def _do_skills():
+    """内部：列出 skills"""
+    skills_dir = JARVIS_HOME / "skills"
+    
+    if not skills_dir.exists():
+        console.print("[yellow]还没有任何 skill[/yellow]")
+        return
+    
+    skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+    
+    if not skill_dirs:
+        console.print("[yellow]还没有任何 skill[/yellow]")
+        return
+    
+    console.print("\n[bold]⚡ 已激活的 Skills:[/bold]")
+    for skill_dir in skill_dirs:
+        console.print(f"  • [cyan]{skill_dir.name}[/cyan]")
+
+
+def _do_init():
+    """内部：初始化"""
+    ensure_jarvis_home()
+    
+    console.print("\n[bold cyan]🥚 Jarvis 初始化[/bold cyan]")
+    
+    default_path = str(Path.home() / "projects")
+    workspace = Prompt.ask("📁 你的工作目录路径", default=default_path)
+    
+    workspace_path = Path(workspace).expanduser().resolve()
+    
+    if not workspace_path.exists():
+        console.print(f"[yellow]⚠️  目录 {workspace_path} 不存在[/yellow]")
+        if Confirm.ask("要创建它吗？"):
+            workspace_path.mkdir(parents=True)
+        else:
+            return
+    
+    config_path = get_config_path()
+    config = {
+        "daemon": {
+            "think_interval_seconds": 60,
+            "self_reflect_interval": 3600
+        },
+        "watch_paths": [str(workspace_path)],
+        "llm": {
+            "base_url": "http://localhost:23335/api/openai",
+            "auth_token": "Powered by Agent Maestro",
+            "model": "claude-sonnet-4"
+        },
+        "notification": {
+            "terminal": True,
+            "macos_notification": True,
+            "min_importance": 3
+        }
+    }
+    
+    with open(config_path, "w") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    
+    console.print(f"\n✅ 配置已保存: [green]{config_path}[/green]")
+
+
+def run_chat_loop():
+    """
+    统一的聊天循环
+    支持：斜杠命令、自然语言控制、LLM 对话
+    """
+    import httpx
+    
+    # 首次运行检测
+    if is_first_run():
+        console.print("\n[yellow]🥚 首次运行！让我们先初始化配置。[/yellow]")
+        console.print("[dim]输入 /init 开始初始化，或直接开始聊天[/dim]\n")
+    
+    # 加载 LLM 配置
+    config_path = JARVIS_HOME / "config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = json.load(f)
+        llm_config = config.get("llm", {})
+    else:
+        llm_config = {
+            "base_url": "http://localhost:23335/api/openai",
+            "model": "claude-sonnet-4",
+            "auth_token": ""
+        }
+    
+    base_url = llm_config.get("base_url", "http://localhost:23335/api/openai")
+    model = llm_config.get("model", "claude-sonnet-4")
+    auth_token = llm_config.get("auth_token", "")
+    
+    messages = []
+    
+    console.print("[dim]输入 /help 查看命令，输入 /exit 退出[/dim]\n")
+    
+    while True:
+        try:
+            user_input = Prompt.ask("[bold green]你[/bold green]")
+            
+            if not user_input.strip():
+                continue
+            
+            # 检查斜杠命令
+            if user_input.startswith("/"):
+                if not handle_slash_command(user_input):
+                    break
+                continue
+            
+            # 检查退出命令（兼容旧版）
+            if user_input.lower() in ("exit", "quit", "q"):
+                console.print("\n[dim]再见！随时呼唤我。[/dim] 👋")
+                break
+            
+            # 检查自然语言意图
+            intent = detect_natural_intent(user_input)
+            if intent == "start":
+                _do_start_daemon()
+                continue
+            elif intent == "rest":
+                _do_rest()
+                continue
+            elif intent == "status":
+                _do_status()
+                continue
+            
+            # 正常 LLM 对话
+            messages.append({"role": "user", "content": user_input})
+            
+            with console.status("[bold cyan]Jarvis 思考中...[/bold cyan]"):
+                try:
+                    with httpx.Client(timeout=60.0, trust_env=False) as client:
+                        resp = client.post(
+                            f"{base_url}/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {auth_token}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "model": model,
+                                "max_tokens": 2000,
+                                "messages": [
+                                    {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
+                                    *messages[-10:]
+                                ]
+                            }
+                        )
+                    
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        reply = data["choices"][0]["message"]["content"]
+                        messages.append({"role": "assistant", "content": reply})
+                        console.print(f"\n[bold cyan]Jarvis[/bold cyan]: {reply}\n")
+                    else:
+                        console.print(f"\n[red]API 错误: {resp.status_code}[/red]\n")
+                        
+                except Exception as e:
+                    console.print(f"\n[red]连接错误: {e}[/red]\n")
+        
+        except KeyboardInterrupt:
+            console.print("\n[dim]再见！(daemon 仍在后台运行)[/dim] 👋")
+            break
+
+
+# ============================================================
+# 默认入口 (callback)
+# ============================================================
+
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    daemon: bool = typer.Option(False, "--daemon", "-d", help="启动 daemon 后退出"),
+    rest_daemon: bool = typer.Option(False, "--rest", "-r", help="停止 daemon"),
+    show_status: bool = typer.Option(False, "--status", "-s", help="显示状态"),
+    question: Optional[str] = typer.Argument(None, help="单次提问（不进入聊天）")
+):
+    """
+    🥚 Jarvis - 你的 AI 伙伴
+    
+    直接运行进入聊天，或使用参数快捷操作：
+    
+      jarvis          进入聊天模式
+      jarvis "问题"   单次提问
+      jarvis -d       启动 daemon
+      jarvis -s       查看状态
+      jarvis -r       停止 daemon
+    """
+    # 如果有子命令，不执行默认行为
+    if ctx.invoked_subcommand is not None:
+        return
+    
+    ensure_jarvis_home()
+    
+    # 快捷参数处理
+    if show_status:
+        _do_status()
+        return
+    
+    if daemon:
+        _do_start_daemon()
+        return
+    
+    if rest_daemon:
+        _do_rest()
+        return
+    
+    # 单次提问
+    if question:
+        _do_ask(question)
+        return
+    
+    # 默认：显示欢迎并进入聊天
+    show_welcome_banner()
+    run_chat_loop()
+
+
+def _do_ask(question: str):
+    """内部：单次提问"""
+    import httpx
+    
+    config_path = JARVIS_HOME / "config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = json.load(f)
+        llm_config = config.get("llm", {})
+    else:
+        llm_config = {}
+    
+    base_url = llm_config.get("base_url", "http://localhost:23335/api/openai")
+    model = llm_config.get("model", "claude-sonnet-4")
+    auth_token = llm_config.get("auth_token", "")
+    
+    console.print(f"\n[bold green]你[/bold green]: {question}")
+    
+    with console.status("[bold cyan]Jarvis 思考中...[/bold cyan]"):
+        try:
+            with httpx.Client(timeout=60.0, trust_env=False) as client:
+                resp = client.post(
+                    f"{base_url}/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {auth_token}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": model,
+                        "max_tokens": 2000,
+                        "messages": [
+                            {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
+                            {"role": "user", "content": question}
+                        ]
+                    }
+                )
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                reply = data["choices"][0]["message"]["content"]
+                console.print(f"\n[bold cyan]Jarvis[/bold cyan]: {reply}")
+            else:
+                console.print(f"\n[red]API 错误: {resp.status_code}[/red]")
+                
+        except Exception as e:
+            console.print(f"\n[red]连接错误: {e}[/red]")
 
 
 # ============================================================

@@ -89,22 +89,40 @@ Jarvis-Agent/
 ## 命令
 
 ```bash
-# CLI 命令 (Phase 1 ✅)
+# 主入口 (Phase 1.5 ✅)
+jarvis                         # 直接进入聊天模式
+jarvis "问题"                  # 单次提问
+jarvis -d                      # 启动 daemon
+jarvis -s                      # 查看状态
+jarvis -r                      # 停止 daemon
+
+# 斜杠命令 (聊天中使用)
+/start       # 启动 daemon
+/rest        # 停止 daemon
+/status      # 查看状态
+/discoveries # 查看发现
+/explore     # 探索目录
+/projects    # 列出项目
+/skills      # 列出 skills
+/init        # 初始化
+/help        # 帮助
+/exit /quit  # 退出聊天
+
+# 自然语言控制 (聊天中使用)
+"帮我挂机"                     # → 启动 daemon
+"休息"                         # → 停止 daemon
+"你在干嘛"                     # → 查看状态
+
+# 传统子命令 (仍可用)
 jarvis init                    # 交互式初始化
-jarvis explore <path>          # 扫描目录发现项目
-jarvis projects                # 列出已发现项目
-jarvis chat                    # 进入对话模式
-jarvis ask "问题"              # 单次提问
-jarvis skills                  # 列出所有 skill
-jarvis status                  # 查看生命体征
 jarvis start                   # 启动后台守护进程
 jarvis start -f                # 前台运行（调试）
-jarvis rest                    # 停止守护进程
-jarvis discoveries             # 查看发现记录
+jarvis status                  # 查看生命体征
 
 # 开发
 poetry install                 # 安装依赖
 poetry run python -m src.cli   # 运行 CLI
+pipx install .                 # 全局安装 jarvis 命令
 ```
 
 ## 四层记忆系统
