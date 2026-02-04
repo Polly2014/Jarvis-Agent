@@ -34,16 +34,25 @@ Jarvis-Agent/
 ├── CLAUDE.md                      # 项目文档（本文件）
 ├── pyproject.toml                 # Poetry 配置
 ├── .env.example                   # 环境变量模板
+├── .gitignore
 │
 ├── src/
 │   ├── __init__.py
-│   ├── cli.py                     # CLI 入口 (typer)
-│   ├── config.py                  # 配置管理
+│   ├── cli.py                     # CLI 入口 (Typer + Rich)
+│   ├── config.py                  # 配置管理 (~/.jarvis/)
+│   ├── main.py                    # 模块入口
+│   │
+│   ├── daemon/                    # 🫀 守护进程
+│   │   ├── __init__.py
+│   │   ├── daemon.py              # 核心心跳循环 + 文件监控
+│   │   ├── discovery.py           # 发现事件模型
+│   │   └── notifier.py            # 通知系统
 │   │
 │   ├── explorer/                  # 🔍 探索器模块
 │   │   ├── __init__.py
 │   │   ├── scanner.py             # 目录扫描
 │   │   ├── signatures.py          # 特征指纹库
+│   │   ├── models.py              # 项目模型
 │   │   └── context_extractor.py   # CLAUDE.md 解析
 │   │
 │   ├── memory/                    # 🧠 记忆系统
@@ -51,65 +60,58 @@ Jarvis-Agent/
 │   │   ├── database.py            # SQLite 操作
 │   │   └── models.py              # 数据模型
 │   │
-│   ├── skills/                    # ⚡ 能力工厂
-│   │   ├── __init__.py
-│   │   ├── factory.py             # Skill 生成器
-│   │   ├── registry.py            # Skill 注册表
-│   │   └── templates/             # Skill 模板
-│   │       ├── paper-tracker.md
-│   │       ├── blog-tracker.md
-│   │       └── mcp-monitor.md
-│   │
 │   ├── llm/                       # 💬 对话引擎
 │   │   ├── __init__.py
-│   │   └── client.py              # Claude/DeepSeek
-│   │
-│   ├── wechat/                    # 📱 微信 Bot
-│   │   ├── __init__.py
-│   │   ├── client.py
-│   │   └── handlers.py
+│   │   └── client.py              # Agent Maestro / Claude API
 │   │
 │   ├── proactive/                 # ⏰ 主动能力
 │   │   ├── __init__.py
-│   │   ├── scheduler.py
-│   │   └── reminders.py
+│   │   ├── scheduler.py           # APScheduler 调度
+│   │   └── blog_reminder.py       # 博客提醒
 │   │
-│   └── server.py                  # FastAPI 服务
+│   └── wechat/                    # 📱 微信 Bot (Phase 2)
+│       ├── __init__.py
+│       ├── client.py
+│       └── handlers.py
 │
-├── scripts/
-│   ├── deploy.sh
-│   └── jarvis-agent.service
-│
-└── tests/
+└── scripts/                       # 部署脚本
+    ├── deploy.sh
+    ├── install_daemon.sh          # macOS/Linux 安装
+    ├── uninstall_daemon.sh
+    ├── com.polly.jarvis.plist     # macOS launchd
+    └── jarvis-agent.service       # Linux systemd
 ```
 
 ## 核心模块
 
 | 模块 | 职责 | 关键文件 |
 |------|------|---------|
+| **Daemon** | 后台守护、文件监控、心跳 | `daemon.py`, `discovery.py` |
 | **Explorer** | 目录扫描、项目识别 | `scanner.py`, `signatures.py` |
-| **Memory** | 四层记忆系统 | `database.py`, `models.py` |
-| **Skills** | Skill 生成与注册 | `factory.py`, `registry.py` |
-| **LLM** | 对话引擎 | `client.py` |
-| **WeChat** | 企业微信 Bot | `client.py`, `handlers.py` |
-| **Proactive** | 主动提醒 | `scheduler.py`, `reminders.py` |
+| **Memory** | SQLite 记忆系统 | `database.py`, `models.py` |
+| **LLM** | 对话引擎 (Agent Maestro) | `client.py` |
+| **Proactive** | 主动提醒 | `scheduler.py`, `blog_reminder.py` |
+| **WeChat** | 企业微信 Bot (Phase 2) | `client.py`, `handlers.py` |
 
 ## 命令
 
 ```bash
-# CLI 命令
+# CLI 命令 (Phase 1 ✅)
 jarvis init                    # 交互式初始化
 jarvis explore <path>          # 扫描目录发现项目
 jarvis projects                # 列出已发现项目
 jarvis chat                    # 进入对话模式
 jarvis ask "问题"              # 单次提问
 jarvis skills                  # 列出所有 skill
-jarvis serve                   # 启动 API 服务
+jarvis status                  # 查看生命体征
+jarvis start                   # 启动后台守护进程
+jarvis start -f                # 前台运行（调试）
+jarvis rest                    # 停止守护进程
+jarvis discoveries             # 查看发现记录
 
 # 开发
 poetry install                 # 安装依赖
-poetry run pytest              # 运行测试
-poetry run jarvis              # 运行 CLI
+poetry run python -m src.cli   # 运行 CLI
 ```
 
 ## 四层记忆系统
@@ -125,12 +127,38 @@ poetry run jarvis              # 运行 CLI
 
 | 组件 | 技术选型 |
 |------|---------|
-| CLI | Typer |
-| Web | FastAPI |
+| CLI | Typer + Rich |
 | Database | SQLite + aiosqlite |
+| File Watch | watchdog |
 | Scheduler | APScheduler |
-| WeChat | 企业微信 API |
-| LLM | Claude API / DeepSeek API |
+| HTTP | httpx (trust_env=False) |
+| LLM | Agent Maestro (OpenAI-compatible) |
+
+## 配置
+
+运行时配置存储在 `~/.jarvis/`:
+
+```
+~/.jarvis/
+├── config.json          # 主配置
+├── jarvis.db            # SQLite 数据库
+├── heartbeat.json       # 心跳状态
+└── logs/
+    └── daemon.log       # 守护进程日志
+```
+
+**config.json 示例**:
+```json
+{
+  "llm": {
+    "provider": "openai",
+    "base_url": "http://localhost:23335/api/openai",
+    "model": "claude-sonnet-4"
+  },
+  "watch_paths": ["/path/to/your/projects"],
+  "think_interval": 300
+}
+```
 
 ## 相关文档
 
