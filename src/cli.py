@@ -267,6 +267,12 @@ def handle_slash_command(cmd: str) -> bool:
     elif command == "/recall":
         _do_recall(args)
     
+    elif command == "/think":
+        _do_think()
+    
+    elif command == "/insights":
+        _do_insights()
+    
     elif command == "/explore":
         _do_explore(args)
     
@@ -437,6 +443,169 @@ def _do_recall(query: Optional[str] = None):
         console.print(f"\n[dim]共 {len(results)} 条相关记忆[/dim]")
 
 
+def _do_think():
+    """内部：触发思考（调用 think 命令的逻辑）"""
+    import httpx
+    from .memory import MemoryIndex, MemoryWriter, MemoryEntry, IndexEntry
+    
+    # 加载配置
+    config_path = get_config_path()
+    if not config_path.exists():
+        console.print("[red]请先运行 /init 初始化配置[/red]")
+        return
+    
+    with open(config_path) as f:
+        config = json.load(f)
+    
+    llm_config = config.get("llm", {})
+    base_url = llm_config.get("base_url", "http://localhost:23335/api/openai")
+    model = llm_config.get("model", "claude-sonnet-4")
+    auth_token = llm_config.get("auth_token", "")
+    
+    console.print("\n[bold cyan]💭 Jarvis 正在思考...[/bold cyan]\n")
+    
+    index_path = JARVIS_HOME / "index.db"
+    memory_path = JARVIS_HOME / "memory"
+    
+    # 读取最近记忆作为上下文
+    recent_context = ""
+    if index_path.exists():
+        index = MemoryIndex(index_path)
+        recent = index.get_recent(days=3, limit=10)
+        if recent:
+            recent_context = "最近的记忆：\n" + "\n".join([
+                f"- [{r.date}] {r.title}: {r.summary[:100] if r.summary else ''}" for r in recent
+            ])
+    
+    prompt = f"""你是 Jarvis，Polly 的 AI 助手。现在是主动思考时间。
+
+{recent_context}
+
+请思考：
+1. 最近有什么有意义的模式或趋势？
+2. 是否有什么事情需要提醒 Polly？
+3. 有没有什么建议或洞察？
+
+如果没有特别重要的事情，可以返回 null。
+
+如果有洞察，请用以下 JSON 格式回复：
+{{
+    "title": "简短标题（10字以内）",
+    "content": "详细内容（2-3句话）",
+    "importance": 1-5,
+    "suggested_action": "建议的行动（可选）"
+}}
+
+只返回 JSON 或 null。"""
+
+    try:
+        with httpx.Client(timeout=60.0, trust_env=False) as client:
+            response = client.post(
+                f"{base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {auth_token}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 1024,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            result = data["choices"][0]["message"]["content"].strip()
+            
+            if result.lower() == "null":
+                console.print("[dim]💤 没有特别的洞察，一切安好[/dim]")
+                return
+            
+            # 解析 JSON
+            import re
+            json_match = re.search(r'\{[^}]+\}', result, re.DOTALL)
+            if json_match:
+                insight = json.loads(json_match.group())
+                
+                # 显示洞察
+                stars = "⭐" * insight.get("importance", 3)
+                console.print(Panel(
+                    f"[bold]{insight.get('title', '洞察')}[/bold] {stars}\n\n"
+                    f"{insight.get('content', '')}\n\n"
+                    f"[dim]建议: {insight.get('suggested_action', '无')}[/dim]",
+                    title="💡 Jarvis 的洞察",
+                    border_style="cyan"
+                ))
+                
+                # 写入记忆
+                writer = MemoryWriter(memory_path)
+                entry = MemoryEntry(
+                    timestamp=datetime.now(),
+                    title=insight.get("title", "思考"),
+                    content=insight.get("content", ""),
+                    importance=insight.get("importance", 3),
+                    entry_type="insight",
+                )
+                file_path = writer.append_to_daily(entry)
+                
+                # 写入索引
+                if index_path.exists():
+                    index = MemoryIndex(index_path)
+                    index_entry = IndexEntry(
+                        id=f"i-{datetime.now().strftime('%Y%m%d')}-{hash(insight.get('title', ''))%10000:04d}",
+                        entry_type="insight",
+                        file_path=str(file_path),
+                        date=datetime.now().date().isoformat(),
+                        title=insight.get("title", "思考"),
+                        tags=[],
+                        importance=insight.get("importance", 3),
+                        summary=insight.get("content", "")[:200]
+                    )
+                    index.add(index_entry)
+                
+                console.print(f"\n[dim]已记录到: {file_path.name}[/dim]")
+            else:
+                console.print(f"[dim]思考结果: {result}[/dim]")
+                
+    except Exception as e:
+        console.print(f"[red]思考失败: {e}[/red]")
+
+
+def _do_insights():
+    """内部：查看最近洞察"""
+    from .memory import MemoryIndex
+    from datetime import timedelta
+    
+    index_path = JARVIS_HOME / "index.db"
+    
+    if not index_path.exists():
+        console.print("[yellow]💭 还没有任何洞察[/yellow]")
+        console.print("[dim]使用 /think 触发思考，或启动 daemon 自动生成[/dim]")
+        return
+    
+    index = MemoryIndex(index_path)
+    
+    # 获取最近 7 天的记录
+    from .memory.index import date
+    date_from = date.today() - timedelta(days=7)
+    results = index.search(date_from=date_from, limit=10)
+    
+    if not results:
+        console.print("[yellow]最近 7 天没有洞察记录[/yellow]")
+        return
+    
+    console.print("\n[bold]💡 最近 7 天的洞察:[/bold]\n")
+    
+    for r in results:
+        stars = "⭐" * r.importance
+        type_emoji = "💭" if r.entry_type == "insight" else "🔍"
+        console.print(f"  {type_emoji} [{r.date}] [bold]{r.title}[/bold] {stars}")
+        if r.summary:
+            summary = r.summary[:60] + "..." if len(r.summary) > 60 else r.summary
+            console.print(f"      [dim]{summary}[/dim]")
+    
+    console.print(f"\n[dim]共 {len(results)} 条记录[/dim]")
+
+
 def _do_explore(path_arg: Optional[str] = None):
     """内部：探索目录"""
     from .explorer import scan_directory, format_discovery_report
@@ -555,6 +724,8 @@ class JarvisCompleter(Completer):
         "/status": "查看状态",
         "/discoveries": "查看发现记录",
         "/recall": "搜索记忆 (用法: /recall 关键词)",
+        "/think": "触发一次思考",
+        "/insights": "查看最近洞察",
         "/explore": "探索目录",
         "/projects": "列出已发现项目",
         "/skills": "列出 skills",
@@ -763,7 +934,8 @@ def main(
     # 这是 Typer 的一个已知问题：有位置参数时子命令可能被误解析
     KNOWN_COMMANDS = {
         "start", "rest", "status", "discoveries", "init", 
-        "explore", "projects", "recall", "chat", "ask", "skills", "serve"
+        "explore", "projects", "recall", "chat", "ask", "skills", "serve",
+        "think", "insights"
     }
     if question and question.lower() in KNOWN_COMMANDS:
         # 这是子命令，手动分发
@@ -776,6 +948,8 @@ def main(
             "explore": lambda: _do_explore(None),
             "projects": lambda: console.print("[yellow]功能开发中...[/yellow]"),
             "recall": lambda: _do_recall(None),
+            "think": _do_think,
+            "insights": _do_insights,
             "chat": run_chat_loop,
             "skills": _do_skills,
         }
@@ -1314,6 +1488,188 @@ def recall(
     
     console.print(table)
     console.print(f"\n[dim]共 {len(results)} 条记忆[/dim]")
+
+
+@app.command()
+def think():
+    """💭 手动触发一次思考
+    
+    让 Jarvis 进行一次自省思考，即使没有文件变化。
+    思考结果会记录到记忆中。
+    """
+    import httpx
+    
+    ensure_jarvis_home()
+    
+    # 加载配置
+    config_path = JARVIS_HOME / "config.json"
+    if not config_path.exists():
+        console.print("[red]请先运行 jarvis init 初始化配置[/red]")
+        raise typer.Exit(1)
+    
+    with open(config_path) as f:
+        config = json.load(f)
+    
+    llm_config = config.get("llm", {})
+    base_url = llm_config.get("base_url", "http://localhost:23335/api/openai")
+    model = llm_config.get("model", "claude-sonnet-4")
+    auth_token = llm_config.get("auth_token", "")
+    
+    console.print("\n[bold cyan]💭 Jarvis 正在思考...[/bold cyan]\n")
+    
+    # 读取最近记忆作为上下文
+    from .memory import MemoryIndex, MemoryWriter, MemoryEntry
+    
+    index_path = JARVIS_HOME / "index.db"
+    memory_path = JARVIS_HOME / "memory"
+    
+    recent_context = ""
+    if index_path.exists():
+        index = MemoryIndex(index_path)
+        recent = index.get_recent(days=3, limit=10)
+        if recent:
+            recent_context = "最近的记忆：\n" + "\n".join([
+                f"- [{r.date}] {r.title}: {r.summary[:100]}" for r in recent
+            ])
+    
+    prompt = f"""你是 Jarvis，Polly 的 AI 助手。现在是主动思考时间。
+
+{recent_context}
+
+请思考：
+1. 最近有什么有意义的模式或趋势？
+2. 是否有什么事情需要提醒 Polly？
+3. 有没有什么建议或洞察？
+
+如果没有特别重要的事情，可以返回 null。
+
+如果有洞察，请用以下 JSON 格式回复：
+{{
+    "title": "简短标题（10字以内）",
+    "content": "详细内容（2-3句话）",
+    "importance": 1-5,
+    "suggested_action": "建议的行动（可选）"
+}}
+
+只返回 JSON 或 null。"""
+
+    try:
+        with httpx.Client(timeout=60.0, trust_env=False) as client:
+            response = client.post(
+                f"{base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {auth_token}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 1024,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            result = data["choices"][0]["message"]["content"].strip()
+            
+            if result.lower() == "null":
+                console.print("[dim]💤 没有特别的洞察，一切安好[/dim]")
+                return
+            
+            # 解析 JSON
+            import re
+            json_match = re.search(r'\{[^}]+\}', result, re.DOTALL)
+            if json_match:
+                insight = json.loads(json_match.group())
+                
+                # 显示洞察
+                stars = "⭐" * insight.get("importance", 3)
+                console.print(Panel(
+                    f"[bold]{insight.get('title', '洞察')}[/bold] {stars}\n\n"
+                    f"{insight.get('content', '')}\n\n"
+                    f"[dim]建议: {insight.get('suggested_action', '无')}[/dim]",
+                    title="💡 Jarvis 的洞察",
+                    border_style="cyan"
+                ))
+                
+                # 写入记忆
+                writer = MemoryWriter(memory_path)
+                entry = MemoryEntry(
+                    timestamp=datetime.now(),
+                    title=insight.get("title", "思考"),
+                    content=insight.get("content", ""),
+                    importance=insight.get("importance", 3),
+                    entry_type="insight",
+                )
+                file_path = writer.append_to_daily(entry)
+                
+                # 写入索引
+                if index_path.exists():
+                    from .memory import IndexEntry
+                    index = MemoryIndex(index_path)
+                    index_entry = IndexEntry(
+                        id=f"i-{datetime.now().strftime('%Y%m%d')}-{hash(insight.get('title', ''))%10000:04d}",
+                        entry_type="insight",
+                        file_path=str(file_path),
+                        date=datetime.now().date().isoformat(),
+                        title=insight.get("title", "思考"),
+                        tags=[],
+                        importance=insight.get("importance", 3),
+                        summary=insight.get("content", "")[:200]
+                    )
+                    index.add(index_entry)
+                
+                console.print(f"\n[dim]已记录到: {file_path.name}[/dim]")
+            else:
+                console.print(f"[dim]思考结果: {result}[/dim]")
+                
+    except Exception as e:
+        console.print(f"[red]思考失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def insights(
+    days: int = typer.Option(7, "-d", "--days", help="查看最近 N 天"),
+    limit: int = typer.Option(10, "-n", "--limit", help="结果数量")
+):
+    """💡 查看最近的洞察
+    
+    显示 Jarvis 最近的思考和洞察记录。
+    """
+    from .memory import MemoryIndex
+    
+    ensure_jarvis_home()
+    index_path = JARVIS_HOME / "index.db"
+    
+    if not index_path.exists():
+        console.print("[yellow]💭 还没有任何洞察[/yellow]")
+        console.print("[dim]使用 jarvis think 触发思考，或启动 daemon 自动生成[/dim]")
+        raise typer.Exit(0)
+    
+    index = MemoryIndex(index_path)
+    
+    # 搜索 insight 和 discovery 类型的记录
+    from datetime import timedelta
+    from .memory.index import date
+    date_from = date.today() - timedelta(days=days)
+    
+    results = index.search(date_from=date_from, limit=limit)
+    
+    if not results:
+        console.print(f"[yellow]最近 {days} 天没有洞察记录[/yellow]")
+        raise typer.Exit(0)
+    
+    console.print(f"\n[bold]💡 最近 {days} 天的洞察:[/bold]\n")
+    
+    for r in results:
+        stars = "⭐" * r.importance
+        type_emoji = "💭" if r.entry_type == "insight" else "🔍"
+        console.print(f"  {type_emoji} [{r.date}] [bold]{r.title}[/bold] {stars}")
+        if r.summary:
+            summary = r.summary[:80] + "..." if len(r.summary) > 80 else r.summary
+            console.print(f"      [dim]{summary}[/dim]")
+    
+    console.print(f"\n[dim]共 {len(results)} 条记录[/dim]")
 
 
 @app.command()

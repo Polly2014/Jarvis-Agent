@@ -55,9 +55,11 @@ Jarvis-Agent/
 │   │   ├── models.py              # 项目模型
 │   │   └── context_extractor.py   # CLAUDE.md 解析
 │   │
-│   ├── memory/                    # 🧠 记忆系统
+│   ├── memory/                    # 🧠 记忆系统 (Phase 2 混合架构)
 │   │   ├── __init__.py
-│   │   ├── database.py            # SQLite 操作
+│   │   ├── writer.py              # MemoryWriter (Markdown 写入)
+│   │   ├── index.py               # MemoryIndex (SQLite FTS5 索引)
+│   │   ├── database.py            # SQLite 操作 (legacy)
 │   │   └── models.py              # 数据模型
 │   │
 │   ├── llm/                       # 💬 对话引擎
@@ -82,25 +84,33 @@ Jarvis-Agent/
 |------|------|---------|
 | **Daemon** | 后台守护、文件监控、心跳 | `daemon.py`, `discovery.py` |
 | **Explorer** | 目录扫描、项目识别 | `scanner.py`, `signatures.py` |
-| **Memory** | SQLite 记忆系统 | `database.py`, `models.py` |
+| **Memory** | 混合记忆系统 (Markdown + SQLite) | `writer.py`, `index.py` |
 | **LLM** | 对话引擎 (Agent Maestro) | `client.py` |
 | **Proactive** | 调度系统 | `scheduler.py` |
 
 ## 命令
 
 ```bash
-# 主入口 (Phase 1.5 ✅)
+# 主入口 (Phase 2 ✅)
 jarvis                         # 直接进入聊天模式
 jarvis "问题"                  # 单次提问
 jarvis -d                      # 启动 daemon
 jarvis -s                      # 查看状态
 jarvis -r                      # 停止 daemon
 
+# Phase 2 新增命令
+jarvis recall "关键词"         # 搜索记忆
+jarvis think                   # 手动触发思考
+jarvis insights                # 查看最近洞察
+
 # 斜杠命令 (聊天中使用)
 /start       # 启动 daemon
 /rest        # 停止 daemon
 /status      # 查看状态
 /discoveries # 查看发现
+/recall      # 搜索记忆
+/think       # 触发思考
+/insights    # 查看洞察
 /explore     # 探索目录
 /projects    # 列出项目
 /skills      # 列出 skills
@@ -125,7 +135,24 @@ poetry run python -m src.cli   # 运行 CLI
 pipx install .                 # 全局安装 jarvis 命令
 ```
 
-## 四层记忆系统
+## 记忆系统架构 (Phase 2)
+
+**核心理念**: "Markdown 存内容，SQLite 做索引"
+
+```
+~/.jarvis/memory/
+├── daily/           # 📅 编年体日志 (2026-02-05.md)
+│   └── 发现/对话/决策/里程碑
+├── topics/          # 📚 纪传体主题
+└── persona.md       # 🎭 人格定义
+```
+
+| 组件 | 用途 | 特点 |
+|------|------|------|
+| **MemoryWriter** | Markdown 写入 | LLM-native，人类可读，Git 友好 |
+| **MemoryIndex** | SQLite FTS5 索引 | 毫秒级搜索，标签/日期/重要性过滤 |
+
+### 四层记忆模型
 
 | 层次 | 内容 | 说明 |
 |------|------|------|
@@ -138,8 +165,8 @@ pipx install .                 # 全局安装 jarvis 命令
 
 | 组件 | 技术选型 |
 |------|---------|
-| CLI | Typer + Rich |
-| Database | SQLite + aiosqlite |
+| CLI | Typer + Rich + prompt_toolkit |
+| Memory | Markdown + SQLite FTS5 |
 | File Watch | watchdog |
 | Scheduler | APScheduler |
 | HTTP | httpx (trust_env=False) |
@@ -152,8 +179,13 @@ pipx install .                 # 全局安装 jarvis 命令
 ```
 ~/.jarvis/
 ├── config.json          # 主配置
-├── jarvis.db            # SQLite 数据库
-├── heartbeat.json       # 心跳状态
+├── index.db             # SQLite FTS5 索引
+├── state.json           # 心跳状态
+├── discoveries.json     # 发现记录
+├── memory/              # Markdown 记忆
+│   ├── daily/           # 编年体
+│   ├── topics/          # 纪传体
+│   └── persona.md       # 人格
 └── logs/
     └── daemon.log       # 守护进程日志
 ```
@@ -223,31 +255,32 @@ pipx install .                 # 全局安装 jarvis 命令
 
 ---
 
-### 🐣 Phase 2：思考与推理（2-3 周）
+### 🐣 Phase 2：思考与推理 ✅
 
 > **里程碑**：Agent 能主动思考，形成判断
 
 **核心目标**：从"被动问答"到"主动思考"
 
-| 能力维度 | 功能 | 说明 |
+| 能力维度 | 功能 | 状态 |
 |---------|------|------|
-| 💭 **Think Loop** | 守护进程定期"思考" | 产生洞察和建议 |
-| 💭 **上下文聚合** | 综合多源信息 | 形成完整判断 |
-| 🧠 **记忆检索** | 语义搜索历史 | 关联过往经验 |
-| 🧠 **记忆关联** | 跨项目关联 | 发现隐藏联系 |
-| 👁️ **变化检测** | 识别有意义变化 | 过滤噪音 |
+| 💭 Think Loop | 守护进程定期"思考" | ✅ |
+| 💭 手动思考 | `jarvis think` 命令 | ✅ |
+| 🧠 混合记忆 | Markdown + SQLite FTS5 | ✅ |
+| 🧠 记忆检索 | `jarvis recall` 全文搜索 | ✅ |
+| 🧠 洞察查看 | `jarvis insights` 命令 | ✅ |
+| 👁️ 变化检测 | 文件监控 + LLM 分析 | ✅ |
 
 **新增命令**：
 ```bash
-jarvis recall "关键词"    # 检索记忆
-jarvis think              # 手动触发思考
-jarvis insights           # 查看最近洞察
+jarvis recall "关键词"    # 检索记忆 ✅
+jarvis think              # 手动触发思考 ✅
+jarvis insights           # 查看最近洞察 ✅
 ```
 
 **验证标准**：
-- [ ] 守护进程能定期产生"思考日志"
-- [ ] 检测到重要变化时，记录到 episodes
-- [ ] `jarvis recall` 能检索相关记忆
+- [x] 守护进程能定期产生"思考日志"
+- [x] 检测到重要变化时，记录到 Markdown
+- [x] `jarvis recall` 能检索相关记忆
 
 ---
 
@@ -320,8 +353,8 @@ jarvis reflect            # 触发元认知反思
                     └─────────────────────────────────────────────────────┘
                                               ▲
                     ┌─────────────────────────────────────────────────────┐
-                    │                   Phase 2: 思考                      │
-                    │        💭 Think Loop → 记忆检索 → 主动洞察           │
+                    │                Phase 2: 思考 ✅                       │
+                    │   💭 Think Loop → 🧠 Markdown+FTS5 → 📊 Insights    │
                     └─────────────────────────────────────────────────────┘
                                               ▲
                     ┌─────────────────────────────────────────────────────┐
@@ -335,6 +368,6 @@ jarvis reflect            # 触发元认知反思
 | Phase | 预估时间 | 核心交付 |
 |-------|---------|---------|
 | Phase 1 | ✅ 完成 | 感知 + 记忆 + 对话 |
-| Phase 2 | 2-3 周 | Think Loop + 记忆检索 |
+| Phase 2 | ✅ 完成 | Think Loop + 混合记忆 + 检索 |
 | Phase 3 | 2-3 周 | Tool Registry + 工具调用 |
 | Phase 4 | 3-4 周 | Skill 自生成 + 验证 |
