@@ -38,9 +38,14 @@ Jarvis-Agent/
 │
 ├── src/
 │   ├── __init__.py
-│   ├── cli.py                     # CLI 入口 (Typer + Rich)
-│   ├── config.py                  # 配置管理 (~/.jarvis/)
-│   ├── main.py                    # 模块入口
+│   │
+│   ├── cli/                       # 🖥️ CLI 入口 (Phase 2.5 模块化)
+│   │   ├── __init__.py            # app 定义 + main callback + 子命令注册
+│   │   ├── common.py              # 常量、路径、状态查询、通用工具
+│   │   ├── chat.py                # 聊天循环、补全器、streaming
+│   │   ├── daemon_cmds.py         # daemon 生命周期 (start/rest/status)
+│   │   ├── memory_cmds.py         # 记忆系统 (recall/think/insights)
+│   │   └── explore_cmds.py        # 探索与项目 (init/explore/projects/discoveries/skills)
 │   │
 │   ├── daemon/                    # 🫀 守护进程
 │   │   ├── __init__.py
@@ -56,19 +61,12 @@ Jarvis-Agent/
 │   │   └── context_extractor.py   # CLAUDE.md 解析
 │   │
 │   ├── memory/                    # 🧠 记忆系统 (Phase 2 混合架构)
-│   │   ├── __init__.py
+│   │   ├── __init__.py            # 导出 MemoryWriter, MemoryIndex
 │   │   ├── writer.py              # MemoryWriter (Markdown 写入)
-│   │   ├── index.py               # MemoryIndex (SQLite FTS5 索引)
-│   │   ├── database.py            # SQLite 操作 (legacy)
-│   │   └── models.py              # 数据模型
+│   │   └── index.py               # MemoryIndex (SQLite FTS5 索引)
 │   │
-│   ├── llm/                       # 💬 对话引擎
-│   │   ├── __init__.py
-│   │   └── client.py              # Agent Maestro / Claude API
-│   │
-│   └── proactive/                 # ⏰ 调度系统
-│       ├── __init__.py
-│       └── scheduler.py           # APScheduler 调度
+│   └── llm/                       # 💬 对话引擎 (Phase 3 待实现)
+│       └── __init__.py
 │
 └── scripts/                       # 部署脚本
     ├── deploy.sh
@@ -82,11 +80,10 @@ Jarvis-Agent/
 
 | 模块 | 职责 | 关键文件 |
 |------|------|---------|
-| **Daemon** | 后台守护、文件监控、心跳 | `daemon.py`, `discovery.py` |
-| **Explorer** | 目录扫描、项目识别 | `scanner.py`, `signatures.py` |
-| **Memory** | 混合记忆系统 (Markdown + SQLite) | `writer.py`, `index.py` |
-| **LLM** | 对话引擎 (Agent Maestro) | `client.py` |
-| **Proactive** | 调度系统 | `scheduler.py` |
+| **CLI** | 命令行入口、聊天循环 | `cli/__init__.py`, `cli/chat.py` |
+| **Daemon** | 后台守护、文件监控、心跳 | `daemon/daemon.py`, `daemon/discovery.py` |
+| **Explorer** | 目录扫描、项目识别 | `explorer/scanner.py`, `explorer/signatures.py` |
+| **Memory** | 混合记忆系统 (Markdown + SQLite) | `memory/writer.py`, `memory/index.py` |
 
 ## 命令
 
@@ -181,7 +178,9 @@ pipx install .                 # 全局安装 jarvis 命令
 ├── config.json          # 主配置
 ├── index.db             # SQLite FTS5 索引
 ├── state.json           # 心跳状态
+├── daemon.pid           # Daemon 进程 PID (Phase 2.5+)
 ├── discoveries.json     # 发现记录
+├── chat_history         # 聊天历史 (prompt_toolkit)
 ├── memory/              # Markdown 记忆
 │   ├── daily/           # 编年体
 │   ├── topics/          # 纪传体
@@ -284,6 +283,22 @@ jarvis insights           # 查看最近洞察 ✅
 
 ---
 
+### 🧹 Phase 2.5：代码质量 ✅
+
+> **里程碑**：清理技术债务，模块化重构
+
+| 改动 | 说明 | 状态 |
+|------|------|------|
+| 🔒 线程安全 | `JarvisEventHandler._recent_changes` 加 `threading.Lock` | ✅ |
+| 🗑️ 清除死代码 | 删除 `main.py`, `config.py`, `proactive/`, `serve` 命令 | ✅ |
+| 🗑️ 清理遗留模块 | 删除 `llm/client.py`, `memory/database.py`, `memory/models.py` | ✅ |
+| 📦 CLI 模块化 | 1909 行 `cli.py` → `cli/` 包 (6 个模块) | ✅ |
+| 📂 projects 命令 | 实现 `jarvis projects`（读取 discoveries.json） | ✅ |
+| 🎭 persona 初始化 | `jarvis init` 自动调用 `MemoryWriter.init_persona()` | ✅ |
+| 🔧 PID 管理 | `daemon.pid` + `SIGTERM` 优雅停止 | ✅ |
+
+---
+
 ### 🦋 Phase 3：行动与工具（2-3 周）
 
 > **里程碑**：Agent 能调用工具，执行任务
@@ -369,5 +384,6 @@ jarvis reflect            # 触发元认知反思
 |-------|---------|---------|
 | Phase 1 | ✅ 完成 | 感知 + 记忆 + 对话 |
 | Phase 2 | ✅ 完成 | Think Loop + 混合记忆 + 检索 |
+| Phase 2.5 | ✅ 完成 | 代码质量清理 + CLI 模块化 + PID 管理 |
 | Phase 3 | 2-3 周 | Tool Registry + 工具调用 |
 | Phase 4 | 3-4 周 | Skill 自生成 + 验证 |

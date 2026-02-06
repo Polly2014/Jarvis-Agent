@@ -14,6 +14,7 @@ import json
 import os
 import sys
 import signal
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -171,6 +172,7 @@ class JarvisEventHandler(FileSystemEventHandler):
         super().__init__()
         self.daemon = daemon
         self._recent_changes: list[dict] = []
+        self._lock = threading.Lock()  # watchdog 回调在子线程，需要线程安全
         self._ignore_patterns = [
             ".git", "__pycache__", ".DS_Store", "node_modules",
             ".pyc", ".pyo", ".swp", ".swo", "~"
@@ -199,20 +201,22 @@ class JarvisEventHandler(FileSystemEventHandler):
         self._record_change("deleted", event.src_path)
     
     def _record_change(self, action: str, path: str):
-        """记录变化"""
-        self._recent_changes.append({
-            "action": action,
-            "path": path,
-            "timestamp": datetime.now().isoformat()
-        })
-        # 只保留最近 50 条
-        if len(self._recent_changes) > 50:
-            self._recent_changes = self._recent_changes[-50:]
+        """记录变化（watchdog 子线程调用，需要加锁）"""
+        with self._lock:
+            self._recent_changes.append({
+                "action": action,
+                "path": path,
+                "timestamp": datetime.now().isoformat()
+            })
+            # 只保留最近 50 条
+            if len(self._recent_changes) > 50:
+                self._recent_changes = self._recent_changes[-50:]
     
     def get_and_clear_changes(self) -> list[dict]:
-        """获取并清空变化记录"""
-        changes = self._recent_changes.copy()
-        self._recent_changes = []
+        """获取并清空变化记录（主线程调用，需要加锁）"""
+        with self._lock:
+            changes = self._recent_changes.copy()
+            self._recent_changes = []
         return changes
 
 
@@ -247,6 +251,7 @@ class JarvisDaemon:
         
         self.life_signs = LifeSigns()
         self._state_path = os.path.join(self.config.jarvis_home, "state.json")
+        self._pid_path = os.path.join(self.config.jarvis_home, "daemon.pid")
         
         # Watchdog
         self._observer: Optional[Observer] = None
@@ -254,6 +259,9 @@ class JarvisDaemon:
         
         # HTTP 客户端
         self._http_client: Optional[httpx.AsyncClient] = None
+        
+        # 用于中断 sleep 的 task 引用
+        self._sleep_task: Optional[asyncio.Task] = None
     
     async def start(self):
         """启动心跳"""
@@ -272,6 +280,10 @@ class JarvisDaemon:
         self.life_signs = LifeSigns(status="running", started_at=datetime.now())
         self.life_signs.save(self._state_path)
         
+        # 写入 PID 文件
+        with open(self._pid_path, "w") as f:
+            f.write(str(os.getpid()))
+        
         # 启动文件监控
         self._start_file_watcher()
         
@@ -279,9 +291,10 @@ class JarvisDaemon:
         if HAS_HTTPX:
             self._http_client = httpx.AsyncClient(timeout=60.0, trust_env=False)
         
-        # 注册信号处理
-        signal.signal(signal.SIGINT, self._handle_signal)
-        signal.signal(signal.SIGTERM, self._handle_signal)
+        # 注册信号处理（使用 asyncio 方式，确保能中断 sleep）
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, self._handle_signal_async)
         
         # 发送启动通知
         self.notifier.notify(
@@ -314,11 +327,22 @@ class JarvisDaemon:
         self.life_signs.status = "stopped"
         self.life_signs.save(self._state_path)
         
+        # 清理 PID 文件
+        try:
+            if os.path.exists(self._pid_path):
+                os.unlink(self._pid_path)
+        except Exception:
+            pass
+        
         print("👋 Jarvis 已休眠，随时可以唤醒")
     
-    def _handle_signal(self, signum, frame):
-        """处理系统信号"""
+    def _handle_signal_async(self):
+        """处理系统信号（asyncio 兼容）"""
+        print(f"\n[Daemon] 收到停止信号，正在优雅退出...")
         self.alive = False
+        # 取消 sleep task 使其立即退出
+        if self._sleep_task and not self._sleep_task.done():
+            self._sleep_task.cancel()
     
     def _start_file_watcher(self):
         """启动文件监控"""
@@ -375,8 +399,14 @@ class JarvisDaemon:
             except Exception as e:
                 print(f"[Daemon] 思考循环错误: {e}")
             
-            # 等待下一次心跳
-            await asyncio.sleep(self.config.think_interval_seconds)
+            # 等待下一次心跳（可被信号中断）
+            try:
+                self._sleep_task = asyncio.ensure_future(
+                    asyncio.sleep(self.config.think_interval_seconds)
+                )
+                await self._sleep_task
+            except asyncio.CancelledError:
+                break  # 收到停止信号，退出循环
     
     async def _think(self, changes: list[dict]) -> Optional[Discovery]:
         """
