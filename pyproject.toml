@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jarvis-agent"
-version = "0.1.0"
+version = "0.3.0"
 description = "数码宝贝式 AI Agent —— 从空白开始，探索进化，成为你的专属伙伴"
 authors = ["Polly Wang <polly@polly.wang>"]
 readme = "CLAUDE.md"

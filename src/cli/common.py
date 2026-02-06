@@ -14,7 +14,7 @@ from rich.panel import Panel
 console = Console()
 
 # 版本号
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 # Jarvis 家目录
 JARVIS_HOME = Path.home() / ".jarvis"

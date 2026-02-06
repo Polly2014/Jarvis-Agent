@@ -65,8 +65,22 @@ Jarvis-Agent/
 │   │   ├── writer.py              # MemoryWriter (Markdown 写入)
 │   │   └── index.py               # MemoryIndex (SQLite FTS5 索引)
 │   │
-│   └── llm/                       # 💬 对话引擎 (Phase 3 待实现)
-│       └── __init__.py
+│   ├── llm/                       # 💬 对话引擎 (Phase 3 ✅)
+│   │   └── __init__.py            # JarvisLLMClient (streaming + function calling)
+│   │
+│   └── tools/                     # 🔧 工具系统 (Phase 3 ✅)
+│       ├── __init__.py            # 导出 Tool, ToolResult, ToolRegistry
+│       ├── base.py                # Tool ABC + ToolResult
+│       ├── registry.py            # ToolRegistry (自动发现 + 全局单例)
+│       ├── builtins/              # Layer 0 — 原子工具
+│       │   ├── file_read.py       # 读取文件
+│       │   ├── file_write.py      # 写入文件
+│       │   ├── shell_exec.py      # 执行 Shell 命令
+│       │   └── http_request.py    # HTTP 请求
+│       └── meta/                  # Layer 1 — 元工具
+│           ├── create_skill.py    # 创建 Skill
+│           ├── create_tool.py     # 创建自定义 Tool
+│           └── create_mcp.py      # 创建 MCP Server 骨架
 │
 └── scripts/                       # 部署脚本
     ├── deploy.sh
@@ -84,6 +98,8 @@ Jarvis-Agent/
 | **Daemon** | 后台守护、文件监控、心跳 | `daemon/daemon.py`, `daemon/discovery.py` |
 | **Explorer** | 目录扫描、项目识别 | `explorer/scanner.py`, `explorer/signatures.py` |
 | **Memory** | 混合记忆系统 (Markdown + SQLite) | `memory/writer.py`, `memory/index.py` |
+| **LLM** | 对话引擎 (Streaming + Function Calling) | `llm/__init__.py` |
+| **Tools** | 工具系统 (Layer 0 原子 + Layer 1 元工具) | `tools/base.py`, `tools/registry.py` |
 
 ## 命令
 
@@ -100,6 +116,9 @@ jarvis recall "关键词"         # 搜索记忆
 jarvis think                   # 手动触发思考
 jarvis insights                # 查看最近洞察
 
+# Phase 3 新增命令
+jarvis tools                   # 列出所有可用工具
+
 # 斜杠命令 (聊天中使用)
 /start       # 启动 daemon
 /rest        # 停止 daemon
@@ -111,6 +130,7 @@ jarvis insights                # 查看最近洞察
 /explore     # 探索目录
 /projects    # 列出项目
 /skills      # 列出 skills
+/tools       # 列出可用工具
 /init        # 初始化
 /help        # 帮助
 /exit /quit  # 退出聊天
@@ -299,30 +319,33 @@ jarvis insights           # 查看最近洞察 ✅
 
 ---
 
-### 🦋 Phase 3：行动与工具（2-3 周）
+### 🦋 Phase 3：行动与工具 ✅
 
 > **里程碑**：Agent 能调用工具，执行任务
 
-**核心目标**：从"只能说"到"能做事"
+**核心目标**：从"只能说"到"能做事"——两层工具架构
 
-| 能力维度 | 功能 | 说明 |
+| 能力维度 | 功能 | 状态 |
 |---------|------|------|
-| 🦾 **Tool Registry** | 工具注册表 | 发现、注册、调用 |
-| 🦾 **内置工具** | 文件/Shell/HTTP | 基础操作能力 |
-| 🦾 **MCP 集成** | 复用 MCP Server | 扩展工具生态 |
-| 💭 **任务规划** | 分解复杂任务 | 多步骤执行 |
-| 💭 **执行决策** | 自动/确认判断 | 安全控制 |
+| 🔧 **Tool 基础框架** | Tool ABC + ToolResult + ToolRegistry | ✅ |
+| 🔹 **Layer 0 原子工具** | file_read, file_write, shell_exec, http_request | ✅ |
+| 🔸 **Layer 1 元工具** | create_skill, create_tool, create_mcp | ✅ |
+| 💬 **LLM Function Calling** | JarvisLLMClient (streaming + tool_calls) | ✅ |
+| 🖥️ **CLI 命令** | `jarvis tools` + `/tools` 斜杠命令 | ✅ |
+| 🔒 **安全控制** | 路径白名单、危险命令拦截、超时保护 | ✅ |
 
-**新增命令**：
-```bash
-jarvis tools              # 列出可用工具
-jarvis run <tool> <args>  # 手动调用工具
+**架构设计**：
+```
+Layer 0 (Atomic)  — 不可再分: file_read, file_write, shell_exec, http_request
+Layer 1 (Meta)    — 构造新能力: create_skill, create_tool, create_mcp
+Layer 2 (Emergent)— Jarvis 自己创造 (Phase 4)
 ```
 
 **验证标准**：
-- [ ] `jarvis chat` 中能调用工具完成任务
-- [ ] 危险操作前能请求确认
-- [ ] 能连接现有 MCP Server
+- [x] `jarvis tools` 显示 7 个工具
+- [x] `jarvis chat` 中 LLM 能通过 function calling 调用工具
+- [x] 危险 shell 命令被拦截
+- [x] 系统路径写入被阻止
 
 ---
 
@@ -385,5 +408,5 @@ jarvis reflect            # 触发元认知反思
 | Phase 1 | ✅ 完成 | 感知 + 记忆 + 对话 |
 | Phase 2 | ✅ 完成 | Think Loop + 混合记忆 + 检索 |
 | Phase 2.5 | ✅ 完成 | 代码质量清理 + CLI 模块化 + PID 管理 |
-| Phase 3 | 2-3 周 | Tool Registry + 工具调用 |
+| Phase 3 | ✅ 完成 | Tool Registry + 工具调用 + 安全控制 |
 | Phase 4 | 3-4 周 | Skill 自生成 + 验证 |

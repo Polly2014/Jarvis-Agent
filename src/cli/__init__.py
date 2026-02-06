@@ -70,7 +70,7 @@ def main(
     KNOWN_COMMANDS = {
         "start", "rest", "status", "discoveries", "init",
         "explore", "projects", "recall", "chat", "ask", "skills",
-        "think", "insights",
+        "think", "insights", "tools",
     }
     if question and question.lower() in KNOWN_COMMANDS:
         cmd_map = {
@@ -86,6 +86,7 @@ def main(
             "insights": _do_insights,
             "chat": run_chat_loop,
             "skills": _do_skills,
+            "tools": lambda: from_tool_cmds_show_tools(),
         }
         handler = cmd_map.get(question.lower())
         if handler:
@@ -125,6 +126,10 @@ def from_explore_cmds_do_explore(path):
 def from_explore_cmds_do_projects():
     from .explore_cmds import _do_projects
     _do_projects()
+
+def from_tool_cmds_show_tools():
+    from .tool_cmds import _show_tools
+    _show_tools()
 
 
 # ── 兼容 chat / ask 子命令 ─────────────────────────────────

@@ -1,6 +1,7 @@
 """
 Jarvis CLI — 聊天循环与补全器
 """
+import asyncio
 import json
 from typing import Optional
 
@@ -38,6 +39,7 @@ class JarvisCompleter(Completer):
         "/explore": "探索目录",
         "/projects": "列出已发现项目",
         "/skills": "列出 skills",
+        "/tools": "列出可用工具",
         "/init": "初始化配置",
         "/help": "显示帮助",
         "/exit": "退出聊天",
@@ -101,6 +103,7 @@ def show_slash_help():
   /explore     探索目录
   /projects    列出已发现项目
   /skills      列出 skills
+  /tools       列出可用工具
   /init        初始化配置
   /help        显示本帮助
   /exit /quit  退出聊天
@@ -146,6 +149,8 @@ def handle_slash_command(cmd: str) -> bool:
         _do_projects()
     elif command == "/skills":
         _do_skills()
+    elif command == "/tools":
+        _do_tools()
     elif command == "/init":
         _do_init()
     else:
@@ -153,6 +158,43 @@ def handle_slash_command(cmd: str) -> bool:
         console.print("[dim]输入 /help 查看可用命令[/dim]")
 
     return True
+
+
+def _do_tools():
+    """显示可用工具列表"""
+    from ..tools.registry import get_registry
+
+    registry = get_registry()
+    tools = registry.list_all()
+
+    if not tools:
+        console.print("[dim]没有已注册的工具[/dim]")
+        return
+
+    console.print(f"\n[bold]🔧 可用工具[/bold] ({len(tools)} 个)\n")
+
+    # 分组显示
+    builtins = [t for t in tools if t.name in ("file_read", "file_write", "shell_exec", "http_request")]
+    meta = [t for t in tools if t.name in ("create_skill", "create_tool", "create_mcp")]
+    custom = [t for t in tools if t not in builtins and t not in meta]
+
+    if builtins:
+        console.print("[bold cyan]Layer 0 — 原子工具[/bold cyan]")
+        for t in builtins:
+            console.print(f"  🔹 [bold]{t.name}[/bold]  [dim]{t.description}[/dim]")
+        console.print()
+
+    if meta:
+        console.print("[bold magenta]Layer 1 — 元工具[/bold magenta]")
+        for t in meta:
+            console.print(f"  🔸 [bold]{t.name}[/bold]  [dim]{t.description}[/dim]")
+        console.print()
+
+    if custom:
+        console.print("[bold yellow]Custom — 自定义工具[/bold yellow]")
+        for t in custom:
+            console.print(f"  ⭐ [bold]{t.name}[/bold]  [dim]{t.description}[/dim]")
+        console.print()
 
 
 # ── 聊天循环 ──────────────────────────────────────────────
@@ -178,77 +220,77 @@ def create_prompt_session() -> PromptSession:
 
 
 def _do_ask(question: str):
-    """单次提问（streaming）"""
-    import httpx
+    """单次提问（带工具调用）"""
+    from ..llm import JarvisLLMClient
 
-    llm = load_llm_config()
-    base_url = llm.get("base_url", "http://localhost:23335/api/openai")
-    model = llm.get("model", "claude-sonnet-4")
-    auth_token = llm.get("auth_token", "")
+    llm_config = load_llm_config()
+    client = JarvisLLMClient(
+        base_url=llm_config.get("base_url", "http://localhost:23335/api/openai"),
+        model=llm_config.get("model", "claude-sonnet-4"),
+        auth_token=llm_config.get("auth_token", ""),
+    )
 
     console.print(f"\n[bold green]你[/bold green]: {question}")
     console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
 
+    def on_content(text: str):
+        print(text, end="", flush=True)
+
+    def on_tool_start(name: str, args: dict):
+        args_short = str(args)[:80]
+        console.print(f"\n  [dim]🔧 {name}({args_short})[/dim]", end="")
+
+    def on_tool_end(name: str, result):
+        status = "✅" if result.success else "❌"
+        console.print(f" {status}")
+
     try:
-        with httpx.Client(timeout=120.0, trust_env=False) as client:
-            with client.stream(
-                "POST",
-                f"{base_url}/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {auth_token}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "max_tokens": 2000,
-                    "stream": True,
-                    "messages": [
-                        {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
-                        {"role": "user", "content": question},
-                    ],
-                },
-            ) as response:
-                if response.status_code != 200:
-                    console.print(f"[red]API 错误: {response.status_code}[/red]")
-                    return
-
-                for line in response.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data_str)
-                        content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                        if content:
-                            print(content, end="", flush=True)
-                    except json.JSONDecodeError:
-                        continue
-
+        asyncio.run(client.chat_with_tools(
+            messages=[{"role": "user", "content": question}],
+            on_content=on_content,
+            on_tool_start=on_tool_start,
+            on_tool_end=on_tool_end,
+        ))
         print("\n")
-
     except Exception as e:
-        console.print(f"\n[red]连接错误: {e}[/red]")
+        console.print(f"\n[red]错误: {e}[/red]")
 
 
 def run_chat_loop():
-    """统一的聊天循环：斜杠命令补全 + 自然语言控制 + LLM 对话"""
-    import httpx
+    """统一的聊天循环：斜杠命令补全 + 自然语言控制 + LLM 对话 (with tool calling)"""
+    from ..llm import JarvisLLMClient
 
     if is_first_run():
         console.print("\n[yellow]🥚 首次运行！让我们先初始化配置。[/yellow]")
         console.print("[dim]输入 /init 开始初始化，或直接开始聊天[/dim]\n")
 
-    llm = load_llm_config()
-    base_url = llm.get("base_url", "http://localhost:23335/api/openai")
-    model = llm.get("model", "claude-sonnet-4")
-    auth_token = llm.get("auth_token", "")
+    llm_config = load_llm_config()
+    client = JarvisLLMClient(
+        base_url=llm_config.get("base_url", "http://localhost:23335/api/openai"),
+        model=llm_config.get("model", "claude-sonnet-4"),
+        auth_token=llm_config.get("auth_token", ""),
+    )
+
+    # 显示工具数量
+    tool_count = len(client.registry)
+    if tool_count > 0:
+        console.print(f"[dim]🔧 已加载 {tool_count} 个工具 (输入 /tools 查看)[/dim]")
 
     messages: list[dict] = []
     session = create_prompt_session()
 
     console.print("[dim]输入 / 后按 Tab 补全命令，↑↓ 查看历史[/dim]\n")
+
+    def on_content(text: str):
+        print(text, end="", flush=True)
+
+    def on_tool_start(name: str, args: dict):
+        args_short = str(args)[:80]
+        console.print(f"\n  [dim]🔧 {name}({args_short})[/dim]", end="")
+
+    def on_tool_end(name: str, result):
+        status = "✅" if result.success else "❌"
+        console.print(f" {status}")
 
     while True:
         try:
@@ -280,52 +322,19 @@ def run_chat_loop():
                 _do_status()
                 continue
 
-            # LLM 对话 (streaming)
+            # LLM 对话 (with tool calling)
             messages.append({"role": "user", "content": user_input})
 
             console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
-            full_reply = ""
 
             try:
-                with httpx.Client(timeout=120.0, trust_env=False) as client:
-                    with client.stream(
-                        "POST",
-                        f"{base_url}/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {auth_token}",
-                            "Content-Type": "application/json",
-                        },
-                        json={
-                            "model": model,
-                            "max_tokens": 2000,
-                            "stream": True,
-                            "messages": [
-                                {"role": "system", "content": "你是 Jarvis，Polly 的私人 AI 助手。简洁、有帮助、可以用 emoji。"},
-                                *messages[-10:],
-                            ],
-                        },
-                    ) as response:
-                        if response.status_code != 200:
-                            console.print(f"[red]API 错误: {response.status_code}[/red]\n")
-                            continue
-
-                        for line in response.iter_lines():
-                            if not line or not line.startswith("data: "):
-                                continue
-                            data_str = line[6:]
-                            if data_str == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(data_str)
-                                content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                if content:
-                                    print(content, end="", flush=True)
-                                    full_reply += content
-                            except json.JSONDecodeError:
-                                continue
-
+                reply = asyncio.run(client.chat_with_tools(
+                    messages=messages,
+                    on_content=on_content,
+                    on_tool_start=on_tool_start,
+                    on_tool_end=on_tool_end,
+                ))
                 print("\n")
-                messages.append({"role": "assistant", "content": full_reply})
 
             except Exception as e:
                 console.print(f"\n[red]连接错误: {e}[/red]\n")
