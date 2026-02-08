@@ -45,7 +45,8 @@ Jarvis-Agent/
 │   │   ├── chat.py                # 聊天循环、补全器、streaming
 │   │   ├── daemon_cmds.py         # daemon 生命周期 (start/rest/status)
 │   │   ├── memory_cmds.py         # 记忆系统 (recall/think/insights)
-│   │   └── explore_cmds.py        # 探索与项目 (init/explore/projects/discoveries/skills)
+│   │   ├── explore_cmds.py        # 探索与项目 (init/explore/projects/discoveries/skills)
+│   │   └── evolution_cmds.py      # 进化系统 (reflect/abilities/patterns/skill)
 │   │
 │   ├── daemon/                    # 🫀 守护进程
 │   │   ├── __init__.py
@@ -68,19 +69,28 @@ Jarvis-Agent/
 │   ├── llm/                       # 💬 对话引擎 (Phase 3 ✅)
 │   │   └── __init__.py            # JarvisLLMClient (streaming + function calling)
 │   │
-│   └── tools/                     # 🔧 工具系统 (Phase 3 ✅)
-│       ├── __init__.py            # 导出 Tool, ToolResult, ToolRegistry
-│       ├── base.py                # Tool ABC + ToolResult
-│       ├── registry.py            # ToolRegistry (自动发现 + 全局单例)
-│       ├── builtins/              # Layer 0 — 原子工具
-│       │   ├── file_read.py       # 读取文件
-│       │   ├── file_write.py      # 写入文件
-│       │   ├── shell_exec.py      # 执行 Shell 命令
-│       │   └── http_request.py    # HTTP 请求
-│       └── meta/                  # Layer 1 — 元工具
-│           ├── create_skill.py    # 创建 Skill
-│           ├── create_tool.py     # 创建自定义 Tool
-│           └── create_mcp.py      # 创建 MCP Server 骨架
+│   ├── tools/                     # 🔧 工具系统 (Phase 3 ✅)
+│   │   ├── __init__.py            # 导出 Tool, ToolResult, ToolRegistry
+│   │   ├── base.py                # Tool ABC + ToolResult
+│   │   ├── registry.py            # ToolRegistry (自动发现 + 全局单例)
+│   │   ├── builtins/              # Layer 0 — 原子工具
+│   │   │   ├── file_read.py       # 读取文件
+│   │   │   ├── file_write.py      # 写入文件
+│   │   │   ├── shell_exec.py      # 执行 Shell 命令
+│   │   │   └── http_request.py    # HTTP 请求
+│   │   └── meta/                  # Layer 1 — 元工具
+│   │       ├── create_skill.py    # 创建 Skill
+│   │       ├── create_tool.py     # 创建自定义 Tool
+│   │       └── create_mcp.py      # 创建 MCP Server 骨架
+│   │
+│   └── evolution/                 # 🔄 进化系统 (Phase 4 ✅)
+│       ├── __init__.py            # 导出所有进化模块
+│       ├── pattern_detector.py    # 交互指纹 + 模式检测
+│       ├── skill_registry.py      # Skill 注册表 (发现/加载/匹配)
+│       ├── skill_generator.py     # Skill 草稿生成 (LLM + fallback)
+│       ├── sandbox.py             # 沙盒验证 (安全检查 + LLM 审计)
+│       ├── preference_learner.py  # 偏好学习 (观察 + 衰减 + 合并)
+│       └── metacognition.py       # 元认知 (五维雷达 + 反思报告)
 │
 └── scripts/                       # 部署脚本
     ├── deploy.sh
@@ -119,6 +129,16 @@ jarvis insights                # 查看最近洞察
 # Phase 3 新增命令
 jarvis tools                   # 列出所有可用工具
 
+# Phase 4 新增命令
+jarvis reflect                 # 触发元认知反思
+jarvis abilities               # 查看五维能力雷达
+jarvis patterns                # 查看已检测的交互模式
+jarvis skill list [--all]      # 列出 Skills
+jarvis skill enable <name>     # 启用 Skill
+jarvis skill disable <name>    # 禁用 Skill
+jarvis skill delete <name>     # 删除 Skill
+jarvis skill test <name>       # 沙盒测试 Skill
+
 # 斜杠命令 (聊天中使用)
 /start       # 启动 daemon
 /rest        # 停止 daemon
@@ -131,6 +151,9 @@ jarvis tools                   # 列出所有可用工具
 /projects    # 列出项目
 /skills      # 列出 skills
 /tools       # 列出可用工具
+/reflect     # 元认知反思
+/abilities   # 五维能力雷达
+/patterns    # 交互模式检测
 /init        # 初始化
 /help        # 帮助
 /exit /quit  # 退出聊天
@@ -349,31 +372,36 @@ Layer 2 (Emergent)— Jarvis 自己创造 (Phase 4)
 
 ---
 
-### ⭐ Phase 4：进化与自生成（3-4 周）
+### ⭐ Phase 4：进化与自生成 ✅
 
 > **里程碑**：Agent 能自己创建新能力
 
 **核心目标**：从"用别人的工具"到"创造自己的工具"
 
-| 能力维度 | 功能 | 说明 |
+| 能力维度 | 功能 | 状态 |
 |---------|------|------|
-| 🔄 **Skill 自生成** | 从交互提炼模式 | 创建可复用 Skill |
-| 🔄 **偏好自学习** | 记录用户偏好 | 个性化适应 |
-| 🔄 **沙盒验证** | 安全测试新能力 | 防止错误 |
-| 🧠 **Persona 进化** | 动态更新人格 | 成为专属伙伴 |
-| 💭 **元认知** | 反思能力边界 | 知道自己不知道什么 |
+| 🔄 **模式检测** | InteractionFingerprint + PatternDetector | ✅ |
+| 🔄 **Skill 注册表** | SkillRegistry (发现/加载/启禁/匹配) | ✅ |
+| 🔄 **Skill 自生成** | SkillGenerator (LLM 提议 + fallback) | ✅ |
+| 🔄 **沙盒验证** | SkillSandbox (5 项安全检查 + LLM 审计) | ✅ |
+| 🔄 **偏好学习** | PreferenceLearner (观察 + 衰减 + 合并) | ✅ |
+| 💭 **元认知** | Metacognition (五维雷达 + 反思报告) | ✅ |
+| 🖥️ **CLI 集成** | reflect/abilities/patterns + skill 子命令 | ✅ |
+| 🫀 **Daemon 集成** | 定期模式检测 + 偏好合并 | ✅ |
 
-**新增命令**：
-```bash
-jarvis skill create       # 手动创建 Skill
-jarvis skill test <name>  # 测试 Skill
-jarvis reflect            # 触发元认知反思
+**架构设计**：
+```
+InteractionFingerprint → PatternDetector → SkillGenerator → SkillSandbox → SkillRegistry
+                                                                              ↕
+UserPreference ← PreferenceLearner                              Metacognition (五维雷达)
 ```
 
 **验证标准**：
-- [ ] 重复 3 次类似任务后，自动提议创建 Skill
-- [ ] `jarvis skills` 显示自生成的 Skill
-- [ ] Skill 验证失败时不会被启用
+- [x] 重复 3 次类似任务后，自动提议创建 Skill
+- [x] `jarvis skill list` 显示自生成的 Skill
+- [x] Skill 验证失败时不会被启用
+- [x] `jarvis reflect` 输出完整反思报告
+- [x] 79/79 单元测试全部通过
 
 ---
 
@@ -381,12 +409,12 @@ jarvis reflect            # 触发元认知反思
 
 ```
                     ┌─────────────────────────────────────────────────────┐
-                    │                   Phase 4: 进化                      │
-                    │        🔄 Skill 自生成 → 偏好学习 → 元认知            │
+                    │                   Phase 4: 进化 ✅                    │
+                    │    🔄 模式检测 → Skill 生成 → 偏好学习 → 元认知        │
                     └─────────────────────────────────────────────────────┘
                                               ▲
                     ┌─────────────────────────────────────────────────────┐
-                    │                   Phase 3: 行动                      │
+                    │                   Phase 3: 行动 ✅                    │
                     │        🦾 Tool Registry → MCP → 任务执行             │
                     └─────────────────────────────────────────────────────┘
                                               ▲
@@ -409,4 +437,4 @@ jarvis reflect            # 触发元认知反思
 | Phase 2 | ✅ 完成 | Think Loop + 混合记忆 + 检索 |
 | Phase 2.5 | ✅ 完成 | 代码质量清理 + CLI 模块化 + PID 管理 |
 | Phase 3 | ✅ 完成 | Tool Registry + 工具调用 + 安全控制 |
-| Phase 4 | 3-4 周 | Skill 自生成 + 验证 |
+| Phase 4 | ✅ 完成 | 模式检测 + Skill 自生成 + 偏好学习 + 元认知 |

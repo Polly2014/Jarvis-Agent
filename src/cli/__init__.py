@@ -35,11 +35,12 @@ app = typer.Typer(
 
 # ── 注册子命令模块 ─────────────────────────────────────────
 
-from . import daemon_cmds, memory_cmds, explore_cmds
+from . import daemon_cmds, memory_cmds, explore_cmds, evolution_cmds
 
 daemon_cmds.register(app)
 memory_cmds.register(app)
 explore_cmds.register(app)
+evolution_cmds.register(app)
 
 
 # ── 主入口 callback ────────────────────────────────────────
@@ -71,6 +72,7 @@ def main(
         "start", "rest", "status", "discoveries", "init",
         "explore", "projects", "recall", "chat", "ask", "skills",
         "think", "insights", "tools",
+        "reflect", "abilities", "patterns", "skill",
     }
     if question and question.lower() in KNOWN_COMMANDS:
         cmd_map = {

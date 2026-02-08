@@ -41,6 +41,9 @@ class JarvisCompleter(Completer):
         "/skills": "列出 skills",
         "/tools": "列出可用工具",
         "/init": "初始化配置",
+        "/reflect": "元认知反思",
+        "/abilities": "五维能力雷达",
+        "/patterns": "查看交互模式",
         "/help": "显示帮助",
         "/exit": "退出聊天",
         "/quit": "退出聊天",
@@ -104,6 +107,9 @@ def show_slash_help():
   /projects    列出已发现项目
   /skills      列出 skills
   /tools       列出可用工具
+  /reflect     元认知反思
+  /abilities   五维能力雷达
+  /patterns    查看交互模式
   /init        初始化配置
   /help        显示本帮助
   /exit /quit  退出聊天
@@ -153,6 +159,15 @@ def handle_slash_command(cmd: str) -> bool:
         _do_tools()
     elif command == "/init":
         _do_init()
+    elif command == "/reflect":
+        from .evolution_cmds import _do_reflect
+        _do_reflect()
+    elif command == "/abilities":
+        from .evolution_cmds import _do_abilities
+        _do_abilities()
+    elif command == "/patterns":
+        from .evolution_cmds import _do_patterns
+        _do_patterns()
     else:
         console.print(f"[red]未知命令: {command}[/red]")
         console.print("[dim]输入 /help 查看可用命令[/dim]")

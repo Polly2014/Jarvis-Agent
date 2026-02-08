@@ -39,6 +39,8 @@ except ImportError:
 from .discovery import Discovery, DiscoveryType, DiscoveryStore
 from .notifier import Notifier, NotificationConfig
 from ..memory import MemoryWriter, MemoryEntry, MemoryIndex, IndexEntry
+from ..evolution.pattern_detector import PatternDetector
+from ..evolution.preference_learner import PreferenceLearner
 
 
 @dataclass
@@ -248,6 +250,11 @@ class JarvisDaemon:
         index_path = Path(self.config.jarvis_home) / "index.db"
         self.memory_writer = MemoryWriter(memory_path)
         self.memory_index = MemoryIndex(index_path)
+        
+        # 🆕 Phase 4: 进化系统
+        jarvis_home_path = Path(self.config.jarvis_home)
+        self.pattern_detector = PatternDetector(jarvis_home_path)
+        self.preference_learner = PreferenceLearner(jarvis_home_path)
         
         self.life_signs = LifeSigns()
         self._state_path = os.path.join(self.config.jarvis_home, "state.json")
@@ -460,6 +467,27 @@ class JarvisDaemon:
         
         当没有文件变化时，Jarvis 也可以主动思考
         """
+        # Phase 4: 偏好合并（由 self_reflect 周期性触发）
+        try:
+            await self.preference_learner.consolidate()
+        except Exception as e:
+            print(f"[Daemon] 偏好合并失败: {e}")
+        
+        # Phase 4: 模式检测
+        try:
+            new_patterns = self.pattern_detector.detect_patterns()
+            if new_patterns:
+                pattern = new_patterns[0]
+                return Discovery(
+                    type=DiscoveryType.SUGGESTION,
+                    title=f"发现重复模式: {pattern.name}",
+                    content=f"{pattern.description}\n\n建议创建 Skill: {pattern.suggested_skill_name}",
+                    importance=4,
+                    suggested_action=f"运行 jarvis skill list 查看，或使用 /patterns 查看所有模式",
+                )
+        except Exception as e:
+            print(f"[Daemon] 模式检测失败: {e}")
+        
         if not HAS_HTTPX or not self._http_client:
             return None
         
