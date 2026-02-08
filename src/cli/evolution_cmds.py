@@ -98,6 +98,17 @@ def _do_patterns():
     from ..evolution.pattern_detector import PatternDetector
 
     detector = PatternDetector(JARVIS_HOME)
+
+    # 先显示指纹统计
+    fingerprints = detector.get_recent_fingerprints()
+    if fingerprints:
+        console.print(f"\n[dim]📊 最近 30 天共 {len(fingerprints)} 条交互指纹[/dim]")
+
+        # 主动触发一次模式检测
+        new_patterns = detector.detect_patterns(fingerprints)
+        if new_patterns:
+            console.print(f"[green]✨ 新检测到 {len(new_patterns)} 个模式！[/green]")
+
     patterns = detector.get_patterns()
 
     if not patterns:

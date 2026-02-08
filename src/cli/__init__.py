@@ -89,6 +89,9 @@ def main(
             "chat": run_chat_loop,
             "skills": _do_skills,
             "tools": lambda: from_tool_cmds_show_tools(),
+            "reflect": lambda: from_evolution_cmds("reflect"),
+            "abilities": lambda: from_evolution_cmds("abilities"),
+            "patterns": lambda: from_evolution_cmds("patterns"),
         }
         handler = cmd_map.get(question.lower())
         if handler:
@@ -132,6 +135,10 @@ def from_explore_cmds_do_projects():
 def from_tool_cmds_show_tools():
     from .tool_cmds import _show_tools
     _show_tools()
+
+def from_evolution_cmds(cmd: str):
+    from .evolution_cmds import _do_reflect, _do_abilities, _do_patterns
+    {"reflect": _do_reflect, "abilities": _do_abilities, "patterns": _do_patterns}[cmd]()
 
 
 # ── 兼容 chat / ask 子命令 ─────────────────────────────────
