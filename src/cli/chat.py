@@ -23,6 +23,84 @@ from .explore_cmds import _do_discoveries, _do_explore, _do_projects, _do_skills
 from rich.panel import Panel
 
 
+# ── 指纹记录辅助 ──────────────────────────────────────────
+
+# 关键词 → 领域 映射表
+_DOMAIN_KEYWORDS = {
+    "translation": ["翻译", "translate", "translation", "i18n", "localize"],
+    "blog": ["博客", "blog", "文章", "post", "写一篇", "发布"],
+    "code": ["代码", "code", "编程", "debug", "编译", "compile", "重构", "refactor",
+             "函数", "function", "class", "bug", "fix", "实现", "implement"],
+    "document": ["文档", "document", "doc", "readme", "说明", "markdown", "md"],
+    "data": ["数据", "data", "分析", "analyze", "csv", "json", "统计", "chart"],
+    "system": ["系统", "system", "配置", "config", "安装", "install", "部署", "deploy"],
+}
+
+# 工具名 → 领域 映射表
+_TOOL_DOMAIN = {
+    "file_read": "document",
+    "file_write": "document",
+    "shell_exec": "system",
+    "http_request": "data",
+    "create_skill": "system",
+    "create_tool": "system",
+    "create_mcp": "system",
+}
+
+
+def _infer_domain(user_input: str, tools_used: list[str]) -> str:
+    """从用户输入和工具列表推断领域标签"""
+    text = user_input.lower()
+
+    # 1. 关键词匹配（优先级高）
+    for domain, keywords in _DOMAIN_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return domain
+
+    # 2. 从工具名推断
+    if tools_used:
+        domain_counts: dict[str, int] = {}
+        for tool in tools_used:
+            d = _TOOL_DOMAIN.get(tool, "other")
+            domain_counts[d] = domain_counts.get(d, 0) + 1
+        if domain_counts:
+            return max(domain_counts, key=domain_counts.get)
+
+    return "other"
+
+
+def _record_fingerprint(
+    user_input: str,
+    tools_used: list[str],
+    success: bool,
+    rounds: int = 1,
+) -> None:
+    """
+    记录一条轻量交互指纹（纯规则提取，零额外 LLM 调用）
+    """
+    try:
+        from ..evolution.pattern_detector import PatternDetector, InteractionFingerprint
+
+        domain = _infer_domain(user_input, tools_used)
+        tool_chain = "→".join(tools_used) if tools_used else ""
+
+        fp = InteractionFingerprint(
+            intent=user_input[:120],
+            domain=domain,
+            tools_used=list(tools_used),
+            tool_chain=tool_chain,
+            input_pattern="",   # 轻量模式下不填
+            output_pattern="",
+            success=success,
+            rounds=rounds,
+        )
+
+        detector = PatternDetector(JARVIS_HOME)
+        detector.record(fp)
+    except Exception:
+        pass  # 指纹记录失败不应影响聊天体验
+
+
 # ── 斜杠命令补全器 ─────────────────────────────────────────
 
 class JarvisCompleter(Completer):
@@ -248,10 +326,13 @@ def _do_ask(question: str):
     console.print(f"\n[bold green]你[/bold green]: {question}")
     console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
 
+    tools_used: list[str] = []
+
     def on_content(text: str):
         print(text, end="", flush=True)
 
     def on_tool_start(name: str, args: dict):
+        tools_used.append(name)
         args_short = str(args)[:80]
         console.print(f"\n  [dim]🔧 {name}({args_short})[/dim]", end="")
 
@@ -259,6 +340,7 @@ def _do_ask(question: str):
         status = "✅" if result.success else "❌"
         console.print(f" {status}")
 
+    success = True
     try:
         asyncio.run(client.chat_with_tools(
             messages=[{"role": "user", "content": question}],
@@ -269,6 +351,10 @@ def _do_ask(question: str):
         print("\n")
     except Exception as e:
         console.print(f"\n[red]错误: {e}[/red]")
+        success = False
+
+    # 记录交互指纹
+    _record_fingerprint(question, tools_used, success=success)
 
 
 def run_chat_loop():
@@ -293,6 +379,7 @@ def run_chat_loop():
 
     messages: list[dict] = []
     session = create_prompt_session()
+    round_tools: list[str] = []  # 本轮对话使用的工具
 
     console.print("[dim]输入 / 后按 Tab 补全命令，↑↓ 查看历史[/dim]\n")
 
@@ -300,6 +387,7 @@ def run_chat_loop():
         print(text, end="", flush=True)
 
     def on_tool_start(name: str, args: dict):
+        round_tools.append(name)
         args_short = str(args)[:80]
         console.print(f"\n  [dim]🔧 {name}({args_short})[/dim]", end="")
 
@@ -339,9 +427,11 @@ def run_chat_loop():
 
             # LLM 对话 (with tool calling)
             messages.append({"role": "user", "content": user_input})
+            round_tools.clear()  # 清空本轮工具追踪
 
             console.print("\n[bold cyan]Jarvis[/bold cyan]: ", end="")
 
+            success = True
             try:
                 reply = asyncio.run(client.chat_with_tools(
                     messages=messages,
@@ -353,6 +443,10 @@ def run_chat_loop():
 
             except Exception as e:
                 console.print(f"\n[red]连接错误: {e}[/red]\n")
+                success = False
+
+            # 记录交互指纹
+            _record_fingerprint(user_input, round_tools, success=success)
 
         except KeyboardInterrupt:
             console.print("\n[dim]再见！(daemon 仍在后台运行)[/dim] 👋")

@@ -758,7 +758,119 @@ body here
                 runner.check("Daemon 集成检查", False, str(e))
 
         # ════════════════════════════════════════════════════
-        print(f"\n{bold(cyan('═══ 8. 端到端流程测试 ═══'))}\n")
+        print(f"\n{bold(cyan('═══ 8. 指纹集成测试 (chat.py) ═══'))}\n")
+        # ════════════════════════════════════════════════════
+
+        # 尝试直接导入 chat 模块（需要 typer）
+        try:
+            from src.cli.chat import _infer_domain, _record_fingerprint
+            _has_chat = True
+        except (ImportError, ModuleNotFoundError):
+            _has_chat = False
+
+        if _has_chat:
+            # 8a. 测试 _infer_domain
+            runner.check(
+                "推断领域: 翻译关键词",
+                _infer_domain("帮我翻译这个文档", []) == "translation",
+            )
+            runner.check(
+                "推断领域: 代码关键词",
+                _infer_domain("debug this function", []) == "code",
+            )
+            runner.check(
+                "推断领域: 博客关键词",
+                _infer_domain("写一篇博客文章", []) == "blog",
+            )
+            runner.check(
+                "推断领域: 从工具名推断",
+                _infer_domain("做点事情", ["file_read", "file_write"]) == "document",
+            )
+            runner.check(
+                "推断领域: shell → system",
+                _infer_domain("运行一下", ["shell_exec"]) == "system",
+            )
+            runner.check(
+                "推断领域: 未知 → other",
+                _infer_domain("你好", []) == "other",
+            )
+            runner.check(
+                "推断领域: 关键词优先于工具",
+                _infer_domain("翻译代码注释", ["shell_exec"]) == "translation",
+            )
+
+            # 8b. 测试 _record_fingerprint 写入
+            fp_home = Path(tmp_dir) / ".jarvis_fp_test"
+            import sys
+            chat_module = sys.modules["src.cli.chat"]
+            original_home = chat_module.JARVIS_HOME
+            try:
+                chat_module.JARVIS_HOME = fp_home
+                _record_fingerprint("读取 README.md 的内容", ["file_read"], success=True)
+                _record_fingerprint("写入新文件", ["file_write"], success=True)
+
+                fp_dir = fp_home / "memory" / "fingerprints"
+                fp_files = list(fp_dir.glob("*.json"))
+                runner.check(
+                    "指纹文件已创建",
+                    len(fp_files) >= 1,
+                    f"found {len(fp_files)} files in {fp_dir}",
+                )
+
+                if fp_files:
+                    data = json.loads(fp_files[0].read_text(encoding="utf-8"))
+                    runner.check(
+                        "指纹内容正确",
+                        len(data) == 2 and data[0]["domain"] == "document",
+                        f"count={len(data)}, domain={data[0].get('domain') if data else '?'}",
+                    )
+            finally:
+                chat_module.JARVIS_HOME = original_home
+
+            # 8c. _record_fingerprint 不抛异常（静默失败）
+            try:
+                chat_module.JARVIS_HOME = Path("/nonexistent/path/12345")
+                _record_fingerprint("test", [], success=True)
+                chat_module.JARVIS_HOME = original_home
+                runner.check("指纹记录失败不抛异常", True)
+            except Exception as e:
+                chat_module.JARVIS_HOME = original_home
+                runner.check("指纹记录失败不抛异常", False, str(e))
+
+        else:
+            # 降级：源码检查
+            chat_source = Path("src/cli/chat.py").read_text(encoding="utf-8")
+            runner.check(
+                "_infer_domain 函数存在 (源码)",
+                "def _infer_domain(" in chat_source,
+            )
+            runner.check(
+                "_record_fingerprint 函数存在 (源码)",
+                "def _record_fingerprint(" in chat_source,
+            )
+            runner.check(
+                "聊天循环调用 _record_fingerprint (源码)",
+                "_record_fingerprint(user_input" in chat_source,
+            )
+            runner.check(
+                "_do_ask 调用 _record_fingerprint (源码)",
+                "record_fingerprint(question" in chat_source,
+            )
+            runner.check(
+                "round_tools 追踪 (源码)",
+                "round_tools" in chat_source,
+            )
+            runner.check(
+                "_DOMAIN_KEYWORDS 定义 (源码)",
+                "_DOMAIN_KEYWORDS" in chat_source,
+            )
+            runner.check(
+                "PatternDetector 导入 (源码)",
+                "PatternDetector" in chat_source,
+            )
+
+        # ════════════════════════════════════════════════════
+        print(f"\n{bold(cyan('═══ 9. 端到端流程测试 ═══'))}\n")
         # ════════════════════════════════════════════════════
 
         # 完整流程: 指纹记录 → 模式检测 → 草稿生成 → 沙盒验证 → finalize
