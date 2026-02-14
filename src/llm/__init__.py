@@ -106,6 +106,7 @@ class JarvisLLMClient:
             content_parts = []
             tool_calls_acc: dict[int, dict] = {}
 
+            # base_url 约定不含 /v1，代码中拼接完整路径
             async with httpx.AsyncClient(timeout=120.0, trust_env=False) as client:
                 async with client.stream(
                     "POST",

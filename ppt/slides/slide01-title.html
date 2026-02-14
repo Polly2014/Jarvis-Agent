@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+}
+.bg {
+  position: absolute; top: 0; left: 0; width: 720pt; height: 405pt;
+}
+.evolution-bar {
+  display: flex; align-items: center; gap: 12pt;
+  margin-bottom: 30pt;
+}
+.evo-stage {
+  text-align: center;
+}
+.evo-icon { font-size: 28pt; margin: 0; }
+.evo-label { color: #6B7280; font-size: 9pt; margin: 3pt 0 0 0; }
+.evo-arrow { color: #374151; font-size: 16pt; margin: 0; }
+.evo-stage.active .evo-label { color: #8B5CF6; }
+h1 {
+  color: #FFFFFF;
+  font-size: 52pt;
+  margin: 0 0 12pt 0;
+  text-align: center;
+  letter-spacing: 3pt;
+}
+.subtitle {
+  color: #8B5CF6;
+  font-size: 24pt;
+  margin: 0 0 8pt 0;
+  text-align: center;
+}
+.tagline {
+  color: #9CA3AF;
+  font-size: 15pt;
+  margin: 30pt 0 0 0;
+  text-align: center;
+}
+.author {
+  color: #6B7280;
+  font-size: 12pt;
+  margin-top: 25pt;
+  text-align: center;
+}
+.badge {
+  display: inline-block;
+  background: #1A1D2E;
+  border: 1pt solid #10B981;
+  border-radius: 12pt;
+  padding: 4pt 14pt;
+  margin-top: 15pt;
+}
+.badge p {
+  color: #10B981;
+  font-size: 11pt;
+  margin: 0;
+}
+</style>
+</head>
+<body>
+<img class="bg" src="title-bg.png" />
+<div class="evolution-bar">
+  <div class="evo-stage active"><p class="evo-icon">🥚</p><p class="evo-label">Phase 1</p></div>
+  <p class="evo-arrow">→</p>
+  <div class="evo-stage active"><p class="evo-icon">🐣</p><p class="evo-label">Phase 2</p></div>
+  <p class="evo-arrow">→</p>
+  <div class="evo-stage active"><p class="evo-icon">🦋</p><p class="evo-label">Phase 3</p></div>
+  <p class="evo-arrow">→</p>
+  <div class="evo-stage active"><p class="evo-icon">⭐</p><p class="evo-label">Phase 4</p></div>
+</div>
+<h1>Jarvis-Agent</h1>
+<p class="subtitle">数码宝贝式 AI Agent</p>
+<div class="badge"><p>✅ 四阶段全部完成 · v0.4.0</p></div>
+<p class="tagline">从空白开始，探索进化，成为你的专属伙伴</p>
+<p class="author">Polly Wang · 2026</p>
+</body>
+</html>

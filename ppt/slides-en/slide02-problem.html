@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  background: #1A1D2E;
+  padding: 14pt 40pt;
+  border-bottom: 2pt solid #EF4444;
+}
+.header h1 { color: #FFFFFF; font-size: 24pt; margin: 0; }
+.content {
+  flex: 1; padding: 15pt 40pt 10pt; display: flex; gap: 25pt;
+}
+.left { flex: 1; }
+.right { flex: 1; }
+h2 { color: #EF4444; font-size: 16pt; margin: 0 0 10pt 0; }
+p { color: #D1D5DB; font-size: 12pt; line-height: 1.5; margin: 0 0 8pt 0; }
+.pain-item {
+  background: #1A1D2E; border-radius: 6pt;
+  padding: 10pt 14pt; margin-bottom: 8pt;
+  display: flex; align-items: center; gap: 12pt;
+  border-left: 3pt solid #EF4444;
+}
+.pain-num { color: #EF4444; font-size: 28pt; font-weight: bold; margin: 0; }
+.pain-text h4 { color: #FFFFFF; font-size: 12pt; margin: 0 0 2pt 0; }
+.pain-text p { color: #9CA3AF; font-size: 9pt; margin: 0; }
+.quote-box {
+  background: #1A1D2E; border-left: 4pt solid #6B7280;
+  padding: 12pt 16pt; margin-top: 10pt; border-radius: 0 6pt 6pt 0;
+}
+.quote-box p { color: #9CA3AF; font-size: 12pt; font-style: italic; margin: 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🤔 The Current Agent Dilemma</h1>
+</div>
+<div class="content">
+  <div class="left">
+    <h2>They Are Tools, Not Partners</h2>
+    <p>Claude Code, Cursor, Windsurf...</p>
+    <p>More powerful than ever, yet fundamentally unchanged —</p>
+    <p><b>User request → Agent responds → Done.</b></p>
+    <div class="quote-box">
+      <p>"A fully-loaded toolbox,<br/>but you still have to open it yourself."</p>
+    </div>
+  </div>
+  <div class="right">
+    <h2>Three Zeros</h2>
+    <div class="pain-item">
+      <p class="pain-num">0</p>
+      <div class="pain-text">
+        <h4>Persistent Memory</h4>
+        <p>Every conversation starts as "nice to meet you"</p>
+      </div>
+    </div>
+    <div class="pain-item">
+      <p class="pain-num">0</p>
+      <div class="pain-text">
+        <h4>Proactive Thinking</h4>
+        <p>Only responds when called, never initiates</p>
+      </div>
+    </div>
+    <div class="pain-item">
+      <p class="pain-num">0</p>
+      <div class="pain-text">
+        <h4>Personality Evolution</h4>
+        <p>One-size-fits-all generic assistant</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

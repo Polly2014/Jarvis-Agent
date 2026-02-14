@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header { padding: 14pt 40pt 6pt; }
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.content {
+  flex: 1; padding: 6pt 40pt 10pt; display: flex; gap: 16pt;
+}
+.terminal {
+  flex: 1.3; background: #0D1117;
+  border-radius: 6pt; padding: 10pt;
+  font-family: Courier New, monospace;
+}
+.terminal-header { display: flex; gap: 4pt; margin-bottom: 8pt; }
+.dot { width: 7pt; height: 7pt; border-radius: 50%; }
+.dot.r { background: #FF5F56; }
+.dot.y { background: #FFBD2E; }
+.dot.g { background: #27CA40; }
+.terminal-content p {
+  color: #C9D1D9; font-size: 7.5pt; margin: 2pt 0; line-height: 1.3;
+  font-family: Courier New, monospace;
+}
+.prompt { color: #10B981; }
+.output { color: #8B949E; }
+.highlight { color: #8B5CF6; }
+.accent { color: #F59E0B; }
+.features {
+  flex: 0.7; display: flex; flex-direction: column; gap: 6pt;
+}
+.feat {
+  background: #1A1D2E; border-radius: 5pt;
+  padding: 8pt 10pt; flex: 1;
+}
+.feat h4 { color: #FFFFFF; font-size: 9pt; margin: 0 0 3pt 0; }
+.feat p { color: #9CA3AF; font-size: 7pt; margin: 0; line-height: 1.3; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🎬 Demo</h1>
+</div>
+<div class="content">
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    </div>
+    <div class="terminal-content">
+      <p><span class="prompt">$</span> jarvis explore ~/projects/</p>
+      <p class="output">👁️ 发现 12 个项目</p>
+      <p></p>
+      <p><span class="prompt">$</span> jarvis -d</p>
+      <p class="output">🫀 心跳启动 ✅ Daemon (PID: 12847)</p>
+      <p></p>
+      <p><span class="prompt">$</span> jarvis "分析 Paper 目录变化"</p>
+      <p class="highlight">🦾 调用: file_read → shell_exec</p>
+      <p class="accent">💭 Section 5.3 数据已更新，建议同步修改</p>
+      <p></p>
+      <p><span class="prompt">$</span> jarvis patterns</p>
+      <p class="highlight">  [coding] file_read→shell_exec (5次)</p>
+      <p class="accent">  → 建议创建 Skill: "代码分析助手"</p>
+      <p></p>
+      <p><span class="prompt">$</span> jarvis reflect</p>
+      <p class="output">🧭 五维能力雷达:</p>
+      <p class="output">  感知 ████████░░ 80%</p>
+      <p class="output">  记忆 ██████░░░░ 60%</p>
+      <p class="output">  思考 ███████░░░ 70%</p>
+      <p class="output">  行动 █████████░ 90%</p>
+      <p class="highlight">  进化 ████░░░░░░ 40%</p>
+    </div>
+  </div>
+  <div class="features">
+    <div class="feat">
+      <h4>👁️ 自动感知</h4>
+      <p>扫描目录自动识别项目</p>
+    </div>
+    <div class="feat">
+      <h4>🫀 持续心跳</h4>
+      <p>后台守护，无交互也在思考</p>
+    </div>
+    <div class="feat">
+      <h4>🦾 工具调用</h4>
+      <p>Function Calling 自主执行</p>
+    </div>
+    <div class="feat">
+      <h4>🔄 模式检测</h4>
+      <p>重复模式 → 建议创建 Skill</p>
+    </div>
+    <div class="feat">
+      <h4>🧭 元认知</h4>
+      <p>自评能力短板，指导进化</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

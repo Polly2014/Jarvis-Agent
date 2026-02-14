@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  padding: 16pt 40pt 6pt;
+}
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #6B7280; font-size: 10pt; margin: 4pt 0 0 0; }
+.content {
+  flex: 1; padding: 6pt 40pt 12pt;
+  display: flex; gap: 24pt;
+}
+.left { flex: 1; display: flex; flex-direction: column; gap: 8pt; }
+.right { flex: 1; display: flex; flex-direction: column; gap: 8pt; }
+.principle {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; flex: 1;
+  border-top: 2pt solid #3B82F6;
+}
+.principle h3 { color: #3B82F6; font-size: 12pt; margin: 0 0 5pt 0; }
+.principle p { color: #D1D5DB; font-size: 9pt; margin: 2pt 0; line-height: 1.35; }
+.principle .detail { color: #9CA3AF; font-size: 8pt; }
+.strategy-card {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt;
+}
+.strategy-card h3 { color: #FFFFFF; font-size: 11pt; margin: 0 0 6pt 0; }
+.strategy-item {
+  display: flex; align-items: center; gap: 8pt;
+  padding: 5pt 0;
+  border-bottom: 1pt solid #252836;
+}
+.strategy-item:last-child { border-bottom: none; }
+.s-icon { font-size: 14pt; margin: 0; }
+.s-name { color: #D1D5DB; font-size: 10pt; margin: 0; }
+.s-desc { color: #6B7280; font-size: 8pt; margin: 0; }
+.quote-box {
+  background: #1E293B; border-left: 3pt solid #3B82F6;
+  border-radius: 0 6pt 6pt 0;
+  padding: 10pt 14pt;
+}
+.quote-box p {
+  color: #93C5FD; font-size: 10pt; font-style: italic; margin: 0;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🔬 Attention Engineering</h1>
+  <p>THE SCARCEST RESOURCE — In the LLM era, it's not compute — it's attention</p>
+</div>
+<div class="content">
+  <div class="left">
+    <div class="principle">
+      <h3>Core Discovery</h3>
+      <p>Chunked translation, Claude Skills, and RAG all solve the same problem —</p>
+      <p><b>Maximizing information density within a limited attention window.</b></p>
+      <p class="detail">Larger context windows won't eliminate the need for attention engineering.</p>
+    </div>
+    <div class="principle">
+      <h3>Four Design Principles</h3>
+      <p>1. Information density > information volume</p>
+      <p>2. Dynamic loading > static packing</p>
+      <p>3. Structured > flat</p>
+      <p>4. Local precision + global overview</p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="strategy-card">
+      <h3>Three Strategies</h3>
+      <div class="strategy-item">
+        <p class="s-icon">🧩</p>
+        <div>
+          <p class="s-name">Chunking</p>
+          <p class="s-desc">Long documents → semantically complete segments</p>
+        </div>
+      </div>
+      <div class="strategy-item">
+        <p class="s-icon">🗜️</p>
+        <div>
+          <p class="s-name">Compression</p>
+          <p class="s-desc">Keep key info, remove redundancy</p>
+        </div>
+      </div>
+      <div class="strategy-item">
+        <p class="s-icon">📦</p>
+        <div>
+          <p class="s-name">Lazy Loading</p>
+          <p class="s-desc">Inject context only when needed</p>
+        </div>
+      </div>
+    </div>
+    <div class="quote-box">
+      <p>"In an age of information overload,<br/>'how to focus' matters more than 'how to access'."</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

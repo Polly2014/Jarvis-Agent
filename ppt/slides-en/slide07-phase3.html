@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  padding: 16pt 40pt 6pt;
+}
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #6B7280; font-size: 10pt; margin: 4pt 0 0 0; }
+.content {
+  flex: 1; padding: 6pt 40pt 12pt; display: flex; gap: 22pt;
+}
+.left { flex: 1; }
+.right { flex: 1; }
+.metaphor-box {
+  background: #1A1D2E; border: 2pt solid #10B981;
+  border-radius: 10pt; padding: 14pt 16pt;
+  margin-bottom: 10pt; text-align: center;
+}
+.metaphor-box h2 { color: #10B981; font-size: 18pt; margin: 0 0 6pt 0; }
+.metaphor-box p { color: #D1D5DB; font-size: 11pt; margin: 0; line-height: 1.5; }
+.arch-card {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; margin-bottom: 8pt;
+}
+.arch-card h3 { color: #10B981; font-size: 11pt; margin: 0 0 6pt 0; }
+.layer-row {
+  display: flex; align-items: center; gap: 8pt;
+  padding: 5pt 0; border-bottom: 1pt solid #252836;
+}
+.layer-row:last-child { border-bottom: none; }
+.layer-badge {
+  background: #1B3A2E; border-radius: 4pt;
+  padding: 2pt 7pt; min-width: 44pt; text-align: center;
+}
+.layer-badge p { color: #10B981; font-size: 8pt; margin: 0; }
+.layer-desc { flex: 1; }
+.layer-desc p { color: #D1D5DB; font-size: 9pt; margin: 0; }
+.layer-desc .sub { color: #6B7280; font-size: 7.5pt; }
+.insight-card {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; margin-bottom: 8pt;
+  border-left: 3pt solid #F59E0B;
+}
+.insight-card h3 { color: #FFFFFF; font-size: 11pt; margin: 0 0 4pt 0; }
+.insight-card p { color: #D1D5DB; font-size: 9pt; margin: 2pt 0; line-height: 1.35; }
+.insight-card .muted { color: #9CA3AF; font-size: 8pt; }
+.security-bar {
+  background: #2D1B1B; border: 1pt solid #EF4444;
+  border-radius: 6pt; padding: 10pt 14pt;
+}
+.security-bar h4 { color: #EF4444; font-size: 10pt; margin: 0 0 4pt 0; }
+.security-bar p { color: #FCA5A5; font-size: 8pt; margin: 2pt 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🖨️ Tools That Build Tools</h1>
+  <p>META-TOOLING — "Give it a 3D printer, not a hammer"</p>
+</div>
+<div class="content">
+  <div class="left">
+    <div class="metaphor-box">
+      <h2>🔨 → 🖨️</h2>
+      <p>Don't give it specific tools.<br/>Give it tools that create tools.</p>
+    </div>
+    <div class="arch-card">
+      <h3>Two-Layer Tool Architecture</h3>
+      <div class="layer-row">
+        <div class="layer-badge"><p>Layer 0</p></div>
+        <div class="layer-desc">
+          <p>Atomic Tools — irreducible</p>
+          <p class="sub">file_read · file_write · shell_exec · http_request</p>
+        </div>
+      </div>
+      <div class="layer-row">
+        <div class="layer-badge"><p>Layer 1</p></div>
+        <div class="layer-desc">
+          <p>Meta Tools — build new capabilities</p>
+          <p class="sub">create_skill · create_tool · create_mcp</p>
+        </div>
+      </div>
+      <div class="layer-row">
+        <div class="layer-badge"><p>Layer 2</p></div>
+        <div class="layer-desc">
+          <p>Emergent Tools — created by Jarvis itself</p>
+          <p class="sub">Abilities that grow from interaction</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="insight-card">
+      <h3>🎯 Key Insight</h3>
+      <p>4 atomic tools + 3 meta tools = infinite possibilities</p>
+      <p class="muted">The biggest win of Phase 3 isn't 7 tools — it's proving that tools-for-building-tools are more valuable than any specific tool.</p>
+    </div>
+    <div class="insight-card">
+      <h3>💬 Function Calling</h3>
+      <p>Streaming + tool_calls — the LLM autonomously decides when and what to invoke, supporting multi-turn tool chains.</p>
+    </div>
+    <div class="security-bar">
+      <h4>🛡️ Dual Safety</h4>
+      <p>LLM Prompt Layer: system prompt constrains behavior</p>
+      <p>Tool Code Layer: path whitelist + dangerous cmd blocking + timeout</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

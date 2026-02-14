@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  padding: 16pt 40pt 6pt;
+}
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #6B7280; font-size: 10pt; margin: 4pt 0 0 0; }
+.content {
+  flex: 1; padding: 6pt 40pt 12pt;
+  display: flex; gap: 24pt;
+}
+.left { flex: 1; display: flex; flex-direction: column; gap: 8pt; }
+.right { flex: 1; display: flex; flex-direction: column; gap: 8pt; }
+.principle {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; flex: 1;
+  border-top: 2pt solid #3B82F6;
+}
+.principle h3 { color: #3B82F6; font-size: 12pt; margin: 0 0 5pt 0; }
+.principle p { color: #D1D5DB; font-size: 9pt; margin: 2pt 0; line-height: 1.35; }
+.principle .detail { color: #9CA3AF; font-size: 8pt; }
+.strategy-card {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt;
+}
+.strategy-card h3 { color: #FFFFFF; font-size: 11pt; margin: 0 0 6pt 0; }
+.strategy-item {
+  display: flex; align-items: center; gap: 8pt;
+  padding: 5pt 0;
+  border-bottom: 1pt solid #252836;
+}
+.strategy-item:last-child { border-bottom: none; }
+.s-icon { font-size: 14pt; margin: 0; }
+.s-name { color: #D1D5DB; font-size: 10pt; margin: 0; }
+.s-desc { color: #6B7280; font-size: 8pt; margin: 0; }
+.quote-box {
+  background: #1E293B; border-left: 3pt solid #3B82F6;
+  border-radius: 0 6pt 6pt 0;
+  padding: 10pt 14pt;
+}
+.quote-box p {
+  color: #93C5FD; font-size: 10pt; font-style: italic; margin: 0;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🔬 注意力工程</h1>
+  <p>ATTENTION ENGINEERING — LLM 时代最稀缺的资源不是算力，是注意力</p>
+</div>
+<div class="content">
+  <div class="left">
+    <div class="principle">
+      <h3>核心发现</h3>
+      <p>分块翻译、Claude Skills、RAG 都在解决同一个问题——</p>
+      <p><b>在有限的注意力窗口内，最大化有效信息密度。</b></p>
+      <p class="detail">上下文窗口再大，注意力工程的价值也不会消失。</p>
+    </div>
+    <div class="principle">
+      <h3>四条设计原则</h3>
+      <p>1. 信息密度 > 信息量</p>
+      <p>2. 动态加载 > 静态堆积</p>
+      <p>3. 结构化 > 扁平化</p>
+      <p>4. 局部精确 + 全局概览</p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="strategy-card">
+      <h3>三大策略</h3>
+      <div class="strategy-item">
+        <p class="s-icon">🧩</p>
+        <div>
+          <p class="s-name">分块 Chunking</p>
+          <p class="s-desc">长文档 → 语义完整的小块</p>
+        </div>
+      </div>
+      <div class="strategy-item">
+        <p class="s-icon">🗜️</p>
+        <div>
+          <p class="s-name">压缩 Compression</p>
+          <p class="s-desc">保留关键信息，去除冗余</p>
+        </div>
+      </div>
+      <div class="strategy-item">
+        <p class="s-icon">📦</p>
+        <div>
+          <p class="s-name">按需加载 Lazy Loading</p>
+          <p class="s-desc">需要时才注入上下文</p>
+        </div>
+      </div>
+    </div>
+    <div class="quote-box">
+      <p>"在信息爆炸的时代，'如何聚焦'<br/>比'如何获取'更重要。"</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

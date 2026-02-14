@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  padding: 16pt 40pt 6pt;
+}
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #6B7280; font-size: 10pt; margin: 4pt 0 0 0; }
+.content {
+  flex: 1; padding: 6pt 40pt 12pt; display: flex; gap: 22pt;
+}
+.left { flex: 1; }
+.right { flex: 1; }
+.concept-card {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; margin-bottom: 8pt;
+}
+.concept-card h3 { color: #8B5CF6; font-size: 12pt; margin: 0 0 5pt 0; }
+.concept-card p { color: #D1D5DB; font-size: 9pt; margin: 2pt 0; line-height: 1.35; }
+.concept-card .muted { color: #9CA3AF; }
+.vs-box {
+  display: flex; gap: 8pt;
+  margin-bottom: 8pt;
+}
+.vs-item {
+  flex: 1; background: #1A1D2E; border-radius: 6pt;
+  padding: 10pt; text-align: center;
+}
+.vs-item.tool { border-top: 2pt solid #EF4444; }
+.vs-item.life { border-top: 2pt solid #10B981; }
+.vs-item h4 { font-size: 10pt; margin: 0 0 4pt 0; }
+.vs-item.tool h4 { color: #EF4444; }
+.vs-item.life h4 { color: #10B981; }
+.vs-item p { color: #9CA3AF; font-size: 8pt; margin: 2pt 0; }
+.arch-flow {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; margin-bottom: 8pt;
+}
+.arch-flow h3 { color: #10B981; font-size: 11pt; margin: 0 0 8pt 0; }
+.flow-step {
+  display: flex; align-items: center; gap: 8pt;
+  margin-bottom: 3pt;
+}
+.flow-num {
+  background: #1B3A2E; border-radius: 50%;
+  width: 18pt; height: 18pt; display: flex;
+  justify-content: center; align-items: center;
+}
+.flow-num p { color: #10B981; font-size: 8pt; margin: 0; }
+.flow-text p { color: #D1D5DB; font-size: 9pt; margin: 0; }
+.memory-design {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt;
+}
+.memory-design h3 { color: #8B5CF6; font-size: 11pt; margin: 0 0 5pt 0; }
+.memory-design p { color: #D1D5DB; font-size: 9pt; margin: 2pt 0; line-height: 1.35; }
+.memory-design .muted { color: #9CA3AF; font-size: 8pt; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🫀 生命体架构：心跳、记忆与思考</h1>
+  <p>LIVING ARCHITECTURE — 为什么 Daemon 比 Cron Job 更重要？</p>
+</div>
+<div class="content">
+  <div class="left">
+    <div class="vs-box">
+      <div class="vs-item tool">
+        <h4>❌ 工具模式</h4>
+        <p>用户请求 → 响应 → 结束</p>
+        <p>被动等待调用</p>
+      </div>
+      <div class="vs-item life">
+        <h4>✅ 生命体模式</h4>
+        <p>心跳 → 感知 → 思考 → 记忆</p>
+        <p>即使无人交互也在运行</p>
+      </div>
+    </div>
+    <div class="concept-card">
+      <h3>🫀 Daemon：真正"活"起来</h3>
+      <p>不是定时任务（Cron），而是心跳守护进程。</p>
+      <p class="muted">心理感受完全不同——它是"真正活着的存在"，而非机械执行的脚本。</p>
+    </div>
+    <div class="concept-card">
+      <h3>💭 Think Loop</h3>
+      <p>每 5 分钟心跳：收集变化 → LLM 分析 → 记录洞察</p>
+      <p class="muted">"你的 AI 助手终于开始'活'起来了。"</p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="arch-flow">
+      <h3>心跳循环</h3>
+      <div class="flow-step">
+        <div class="flow-num"><p>1</p></div>
+        <div class="flow-text"><p>Watchdog 感知文件变化</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num"><p>2</p></div>
+        <div class="flow-text"><p>批量累积，避免噪声</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num"><p>3</p></div>
+        <div class="flow-text"><p>LLM 分析变化含义</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num"><p>4</p></div>
+        <div class="flow-text"><p>Markdown 写入记忆</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num"><p>5</p></div>
+        <div class="flow-text"><p>FTS5 索引，毫秒检索</p></div>
+      </div>
+    </div>
+    <div class="memory-design">
+      <h3>🧠 混合记忆哲学</h3>
+      <p>"Markdown 存内容，SQLite 做索引"</p>
+      <p class="muted">LLM 能直接读 Markdown；人类能直接读 Markdown；Git 能追踪 Markdown。三方通用。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

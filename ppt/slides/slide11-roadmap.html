@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header { padding: 18pt 40pt 8pt; }
+.header h1 { color: #FFFFFF; font-size: 24pt; margin: 0; }
+.header p { color: #6B7280; font-size: 11pt; margin: 5pt 0 0 0; }
+.content {
+  flex: 1; padding: 10pt 30pt 15pt; display: flex; gap: 12pt;
+}
+.phase {
+  flex: 1; background: #1A1D2E; border-radius: 8pt;
+  padding: 14pt 12pt; display: flex; flex-direction: column;
+  border-top: 3pt solid;
+}
+.phase.p1 { border-top-color: #3B82F6; }
+.phase.p2 { border-top-color: #8B5CF6; }
+.phase.p25 { border-top-color: #6B7280; }
+.phase.p3 { border-top-color: #10B981; }
+.phase.p4 { border-top-color: #F59E0B; }
+.phase-header {
+  display: flex; align-items: center; gap: 6pt; margin-bottom: 10pt;
+}
+.phase-icon { font-size: 18pt; margin: 0; }
+.phase-title { color: #FFFFFF; font-size: 11pt; margin: 0; }
+.check { color: #10B981; font-size: 10pt; margin: 0 0 0 auto; }
+.phase-features { flex: 1; }
+.phase-features p { color: #9CA3AF; font-size: 8pt; margin: 3pt 0; line-height: 1.3; }
+.phase-label { font-size: 8pt; margin-top: auto; padding-top: 8pt; }
+.phase.p1 .phase-label { color: #3B82F6; }
+.phase.p2 .phase-label { color: #8B5CF6; }
+.phase.p25 .phase-label { color: #6B7280; }
+.phase.p3 .phase-label { color: #10B981; }
+.phase.p4 .phase-label { color: #F59E0B; }
+.timeline-bar {
+  padding: 0 30pt 15pt;
+  display: flex; align-items: center; gap: 0;
+}
+.bar-seg {
+  flex: 1; height: 4pt;
+}
+.bar-seg.s1 { background: #3B82F6; border-radius: 2pt 0 0 2pt; }
+.bar-seg.s2 { background: #8B5CF6; }
+.bar-seg.s25 { background: #6B7280; flex: 0.5; }
+.bar-seg.s3 { background: #10B981; }
+.bar-seg.s4 { background: #F59E0B; border-radius: 0 2pt 2pt 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🦋 进化全景图</h1>
+  <p>四阶段全部完成 — 从空白蛋到能自我进化的 Agent</p>
+</div>
+<div class="content">
+  <div class="phase p1">
+    <div class="phase-header">
+      <p class="phase-icon">🥚</p>
+      <h3 class="phase-title">Phase 1</h3>
+      <p class="check">✅</p>
+    </div>
+    <div class="phase-features">
+      <p>👁️ Explorer 扫描</p>
+      <p>👁️ Watchdog 监控</p>
+      <p>🧠 SQLite 记忆</p>
+      <p>💬 LLM 对话</p>
+    </div>
+    <p class="phase-label">感知与记忆</p>
+  </div>
+  <div class="phase p2">
+    <div class="phase-header">
+      <p class="phase-icon">🐣</p>
+      <h3 class="phase-title">Phase 2</h3>
+      <p class="check">✅</p>
+    </div>
+    <div class="phase-features">
+      <p>💭 Think Loop</p>
+      <p>🧠 混合记忆</p>
+      <p>🔍 FTS5 检索</p>
+      <p>📊 自主洞察</p>
+    </div>
+    <p class="phase-label">思考与推理</p>
+  </div>
+  <div class="phase p25">
+    <div class="phase-header">
+      <p class="phase-icon">🧹</p>
+      <h3 class="phase-title">2.5</h3>
+      <p class="check">✅</p>
+    </div>
+    <div class="phase-features">
+      <p>🔒 线程安全</p>
+      <p>📦 CLI 模块化</p>
+      <p>🔧 PID 管理</p>
+    </div>
+    <p class="phase-label">代码质量</p>
+  </div>
+  <div class="phase p3">
+    <div class="phase-header">
+      <p class="phase-icon">🦋</p>
+      <h3 class="phase-title">Phase 3</h3>
+      <p class="check">✅</p>
+    </div>
+    <div class="phase-features">
+      <p>🔧 Tool Registry</p>
+      <p>🔌 Function Calling</p>
+      <p>🛡️ 安全控制</p>
+      <p>⚙️ 元工具</p>
+    </div>
+    <p class="phase-label">行动与工具</p>
+  </div>
+  <div class="phase p4">
+    <div class="phase-header">
+      <p class="phase-icon">⭐</p>
+      <h3 class="phase-title">Phase 4</h3>
+      <p class="check">✅</p>
+    </div>
+    <div class="phase-features">
+      <p>🔄 模式检测</p>
+      <p>🧪 Skill 自生成</p>
+      <p>🎯 偏好学习</p>
+      <p>🧭 元认知</p>
+    </div>
+    <p class="phase-label">进化与自生成</p>
+  </div>
+</div>
+<div class="timeline-bar">
+  <div class="bar-seg s1"></div>
+  <div class="bar-seg s2"></div>
+  <div class="bar-seg s25"></div>
+  <div class="bar-seg s3"></div>
+  <div class="bar-seg s4"></div>
+</div>
+</body>
+</html>

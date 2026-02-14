@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header { padding: 16pt 40pt 8pt; }
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #6B7280; font-size: 11pt; margin: 4pt 0 0 0; }
+.grid {
+  flex: 1; display: flex; flex-wrap: wrap;
+  padding: 0 30pt 10pt; gap: 10pt;
+}
+.dim {
+  background: #1A1D2E; border-radius: 6pt;
+  padding: 12pt; border-left: 3pt solid;
+}
+.dim.d1 { flex: 1 1 28%; border-left-color: #3B82F6; }
+.dim.d2 { flex: 1 1 28%; border-left-color: #8B5CF6; }
+.dim.d3 { flex: 1 1 28%; border-left-color: #F59E0B; }
+.dim.d4 { flex: 1 1 43%; border-left-color: #10B981; }
+.dim.d5 { flex: 1 1 43%; border-left-color: #EF4444; }
+.dim-header { display: flex; align-items: center; gap: 6pt; margin-bottom: 5pt; }
+.dim-icon { font-size: 16pt; margin: 0; }
+.dim-title { color: #FFFFFF; font-size: 12pt; margin: 0; }
+.dim p { color: #9CA3AF; font-size: 9pt; margin: 2pt 0 0 0; line-height: 1.3; }
+.dim-phase { font-size: 8pt; margin: 4pt 0 0 0; }
+.dim.d1 .dim-phase { color: #3B82F6; }
+.dim.d2 .dim-phase { color: #8B5CF6; }
+.dim.d3 .dim-phase { color: #F59E0B; }
+.dim.d4 .dim-phase { color: #10B981; }
+.dim.d5 .dim-phase { color: #EF4444; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🧬 五维能力模型</h1>
+  <p>FIVE DIMENSIONS — 一个完整 Agent 的能力全景</p>
+</div>
+<div class="grid">
+  <div class="dim d1">
+    <div class="dim-header">
+      <p class="dim-icon">👁️</p>
+      <h3 class="dim-title">感知 Perception</h3>
+    </div>
+    <p>目录扫描、文件监控、项目识别</p>
+    <p class="dim-phase">← Phase 1 ✅</p>
+  </div>
+  <div class="dim d2">
+    <div class="dim-header">
+      <p class="dim-icon">🧠</p>
+      <h3 class="dim-title">记忆 Memory</h3>
+    </div>
+    <p>四层模型、Markdown + FTS5</p>
+    <p class="dim-phase">← Phase 1-2 ✅</p>
+  </div>
+  <div class="dim d3">
+    <div class="dim-header">
+      <p class="dim-icon">💭</p>
+      <h3 class="dim-title">思考 Thinking</h3>
+    </div>
+    <p>Think Loop 心跳、主动分析</p>
+    <p class="dim-phase">← Phase 2 ✅</p>
+  </div>
+  <div class="dim d4">
+    <div class="dim-header">
+      <p class="dim-icon">🦾</p>
+      <h3 class="dim-title">行动 Action</h3>
+    </div>
+    <p>两层工具架构、LLM Function Calling、安全控制</p>
+    <p class="dim-phase">← Phase 3 ✅</p>
+  </div>
+  <div class="dim d5">
+    <div class="dim-header">
+      <p class="dim-icon">🔄</p>
+      <h3 class="dim-title">进化 Evolution</h3>
+    </div>
+    <p>交互指纹、模式检测、Skill 自生成、偏好学习、元认知</p>
+    <p class="dim-phase">← Phase 4 ✅</p>
+  </div>
+</div>
+</body>
+</html>

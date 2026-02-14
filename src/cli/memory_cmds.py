@@ -116,6 +116,7 @@ def _do_think():
 
 只返回 JSON 或 null。"""
 
+    # base_url 约定不含 /v1，代码中拼接完整路径
     try:
         with httpx.Client(timeout=60.0, trust_env=False) as client:
             response = client.post(

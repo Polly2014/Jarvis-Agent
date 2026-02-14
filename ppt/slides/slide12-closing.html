@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+}
+.bg { position: absolute; top: 0; left: 0; width: 720pt; height: 405pt; }
+.evolution-bar {
+  display: flex; align-items: center; gap: 15pt;
+  margin-bottom: 35pt;
+}
+.stage { text-align: center; }
+.stage-icon { font-size: 40pt; margin: 0 0 5pt 0; }
+.stage-label { color: #10B981; font-size: 10pt; margin: 0; }
+.arrow { color: #10B981; font-size: 20pt; margin: 0; }
+.tagline {
+  color: #FFFFFF;
+  font-size: 32pt;
+  margin: 0 0 12pt 0;
+  text-align: center;
+}
+.sub-tagline {
+  color: #8B5CF6;
+  font-size: 16pt;
+  margin: 0 0 35pt 0;
+  text-align: center;
+  font-style: italic;
+}
+.cta {
+  display: flex; gap: 40pt;
+}
+.cta-item { text-align: center; }
+.cta-item p {
+  color: #6B7280; font-size: 11pt; margin: 0 0 4pt 0;
+}
+.cta-item h4 {
+  color: #10B981; font-size: 13pt; margin: 0;
+}
+.version {
+  color: #4B5563;
+  font-size: 10pt;
+  margin-top: 30pt;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<img class="bg" src="closing-bg.png" />
+<div class="evolution-bar">
+  <div class="stage">
+    <p class="stage-icon">🥚</p>
+    <p class="stage-label">感知</p>
+  </div>
+  <p class="arrow">→</p>
+  <div class="stage">
+    <p class="stage-icon">🐣</p>
+    <p class="stage-label">思考</p>
+  </div>
+  <p class="arrow">→</p>
+  <div class="stage">
+    <p class="stage-icon">🦋</p>
+    <p class="stage-label">行动</p>
+  </div>
+  <p class="arrow">→</p>
+  <div class="stage">
+    <p class="stage-icon">⭐</p>
+    <p class="stage-label">进化</p>
+  </div>
+</div>
+<p class="tagline">不是工具，是伙伴。</p>
+<p class="sub-tagline">代码已经就绪，进化才刚刚开始。</p>
+<div class="cta">
+  <div class="cta-item">
+    <p>Blog</p>
+    <h4>polly.wang/blog</h4>
+  </div>
+  <div class="cta-item">
+    <p>GitHub</p>
+    <h4>github.com/polly</h4>
+  </div>
+</div>
+<p class="version">Jarvis-Agent v0.4.0 · Polly Wang · 2026</p>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #0F1119; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+.header {
+  padding: 16pt 40pt 8pt;
+}
+.header h1 { color: #FFFFFF; font-size: 22pt; margin: 0; }
+.header p { color: #8B5CF6; font-size: 11pt; margin: 4pt 0 0 0; }
+.content {
+  flex: 1; padding: 4pt 36pt 12pt;
+  display: flex; flex-wrap: wrap; gap: 10pt;
+}
+.kernel {
+  background: #1A1D2E; border-radius: 8pt;
+  padding: 12pt 14pt; flex: 1 1 44%;
+  display: flex; flex-direction: column;
+}
+.kernel.k1 { border-left: 3pt solid #3B82F6; }
+.kernel.k2 { border-left: 3pt solid #10B981; }
+.kernel.k3 { border-left: 3pt solid #F59E0B; }
+.kernel.k4 { border-left: 3pt solid #8B5CF6; }
+.kernel-header {
+  display: flex; align-items: center; gap: 6pt;
+  margin-bottom: 5pt;
+}
+.kernel-icon { font-size: 16pt; margin: 0; }
+.kernel-title { color: #FFFFFF; font-size: 13pt; margin: 0; }
+.kernel p { color: #9CA3AF; font-size: 9pt; margin: 2pt 0 0 0; line-height: 1.35; }
+.kernel .quote { color: #D1D5DB; font-size: 9pt; font-style: italic; margin: 4pt 0 0 0; }
+.footer-quote {
+  padding: 0 40pt 14pt;
+  text-align: center;
+}
+.footer-quote p {
+  color: #6B7280; font-size: 10pt; font-style: italic; margin: 0;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🧬 Four Kernels: The Soul of an Agent</h1>
+  <p>DESIGN PHILOSOPHY — What makes a "real" Agent?</p>
+</div>
+<div class="content">
+  <div class="kernel k1">
+    <div class="kernel-header">
+      <p class="kernel-icon">🌉</p>
+      <h3 class="kernel-title">Bridge on Demand</h3>
+    </div>
+    <p>Autonomously create capabilities for new tasks, rather than waiting for configuration.</p>
+    <p class="quote">"See water? Build a bridge."</p>
+  </div>
+  <div class="kernel k2">
+    <div class="kernel-header">
+      <p class="kernel-icon">💪</p>
+      <h3 class="kernel-title">Emergent Muscles</h3>
+    </div>
+    <p>Abilities grow naturally from interaction, not from pre-programming.</p>
+    <p class="quote">"Skills aren't configured — they're earned through use."</p>
+  </div>
+  <div class="kernel k3">
+    <div class="kernel-header">
+      <p class="kernel-icon">🎭</p>
+      <h3 class="kernel-title">Gradual Persona</h3>
+    </div>
+    <p>Skeleton (values) by design; muscles (preferences) by emergence.</p>
+    <p class="quote">"Every Jarvis is unique — because every user is unique."</p>
+  </div>
+  <div class="kernel k4">
+    <div class="kernel-header">
+      <p class="kernel-icon">🧠</p>
+      <h3 class="kernel-title">Memory Iteration</h3>
+    </div>
+    <p>No memory, no evolution. Record → retrieve → associate → grow.</p>
+    <p class="quote">"Without memory, there is no evolution."</p>
+  </div>
+</div>
+<div class="footer-quote">
+  <p>An Agent should not wait to be configured — it should explore on its own.</p>
+</div>
+</body>
+</html>
