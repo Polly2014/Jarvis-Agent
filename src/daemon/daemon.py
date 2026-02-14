@@ -520,50 +520,38 @@ class JarvisDaemon:
             return None
     
     async def _call_claude(self, prompt: str) -> str:
-        """调用 LLM API（支持 OpenAI 和 Anthropic 格式）"""
+        """
+        调用 LLM API（支持 OpenAI 和 Anthropic 格式）
+        
+        CopilotX 约定: base_url 包含 /v1，如 https://api.polly.wang/v1
+        - Anthropic 格式: base_url/messages
+        - OpenAI 格式: base_url/chat/completions
+        """
         if not self._http_client:
             raise RuntimeError("HTTP 客户端未初始化")
         
+        # 统一使用 Bearer token
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.config.llm_auth_token}"
+        }
+        payload = {
+            "model": self.config.llm_model,
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        
+        # base_url 已包含 /v1，直接拼接端点
         if self.config.llm_provider == "openai":
-            # OpenAI 格式
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.config.llm_auth_token}"
-            }
-            payload = {
-                "model": self.config.llm_model,
-                "max_tokens": 1024,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ]
-            }
-            response = await self._http_client.post(
-                f"{self.config.llm_base_url}/v1/chat/completions",
-                headers=headers,
-                json=payload
-            )
+            url = f"{self.config.llm_base_url}/chat/completions"
+            response = await self._http_client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"]
         else:
-            # Anthropic 格式
-            headers = {
-                "Content-Type": "application/json",
-                "x-api-key": self.config.llm_auth_token,
-                "anthropic-version": "2023-06-01"
-            }
-            payload = {
-                "model": self.config.llm_model,
-                "max_tokens": 1024,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ]
-            }
-            response = await self._http_client.post(
-                f"{self.config.llm_base_url}/v1/messages",
-                headers=headers,
-                json=payload
-            )
+            # Anthropic 格式 (CopilotX 推荐)
+            url = f"{self.config.llm_base_url}/messages"
+            response = await self._http_client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
             return data["content"][0]["text"]
