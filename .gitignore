@@ -55,3 +55,4 @@ poetry.lock
 # macOS
 .DS_Store
 hackathon-ppt
+ppt/node_modules/
