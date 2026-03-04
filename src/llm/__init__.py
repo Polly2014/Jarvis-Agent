@@ -269,6 +269,8 @@ class JarvisLLMClient:
 
         full_reply = ""
         compacted = False  # 标记是否曾压缩（供 CLI 显示提示）
+        compaction_retries = 0  # 压缩重试计数器，防止无限循环
+        MAX_COMPACTION_RETRIES = 2
 
         for _round in range(self.MAX_TOOL_ROUNDS):
             # Phase 4.5: 主动压缩 — 消息过多时先压缩再发送
@@ -326,6 +328,12 @@ class JarvisLLMClient:
                                 "Context window exceeded (status=%d), compacting...",
                                 response.status_code,
                             )
+                            if compaction_retries >= MAX_COMPACTION_RETRIES:
+                                raise RuntimeError(
+                                    f"多次压缩后仍超出 context window，"
+                                    f"请缩短单条消息长度或开新对话"
+                                )
+                            compaction_retries += 1
                             messages[:], compacted = await self._compact_messages(messages)
                             if compacted and on_compaction:
                                 on_compaction()
