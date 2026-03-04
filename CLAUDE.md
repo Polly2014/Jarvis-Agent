@@ -443,7 +443,7 @@ UserPreference ← PreferenceLearner                              Metacognition 
 | Phase 2.5 | ✅ 完成 | 代码质量清理 + CLI 模块化 + PID 管理 |
 | Phase 3 | ✅ 完成 | Tool Registry + 工具调用 + 安全控制 |
 | Phase 4 | ✅ 完成 | 模式检测 + Skill 自生成 + 偏好学习 + 元认知 |
-| Phase 4.5 | 📋 1-2 天 | Context Window 管理（token-aware 截取 + LLM 压缩 + fallback） |
+| Phase 4.5 | ✅ 完成 | Context Window 管理（token-aware 截取 + LLM 压缩 + fallback） |
 | Phase 5 | 📋 ~2 周 | Skill Evolution Observer + 主动提醒 + 闭环优化 |
 
 ---
