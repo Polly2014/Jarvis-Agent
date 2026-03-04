@@ -340,6 +340,9 @@ def _do_ask(question: str):
         status = "✅" if result.success else "❌"
         console.print(f" {status}")
 
+    def on_compaction():
+        console.print("\n  [dim]📦 对话已压缩，早期内容已摘要[/dim]")
+
     success = True
     try:
         asyncio.run(client.chat_with_tools(
@@ -347,6 +350,7 @@ def _do_ask(question: str):
             on_content=on_content,
             on_tool_start=on_tool_start,
             on_tool_end=on_tool_end,
+            on_compaction=on_compaction,
         ))
         print("\n")
     except Exception as e:
@@ -395,6 +399,9 @@ def run_chat_loop():
         status = "✅" if result.success else "❌"
         console.print(f" {status}")
 
+    def on_compaction():
+        console.print("  [dim]📦 对话已压缩，早期内容已摘要[/dim]")
+
     while True:
         try:
             user_input = session.prompt("你> ").strip()
@@ -438,6 +445,7 @@ def run_chat_loop():
                     on_content=on_content,
                     on_tool_start=on_tool_start,
                     on_tool_end=on_tool_end,
+                    on_compaction=on_compaction,
                 ))
                 print("\n")
 
