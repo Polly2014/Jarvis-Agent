@@ -409,6 +409,11 @@ UserPreference ← PreferenceLearner                              Metacognition 
 
 ```
                     ┌─────────────────────────────────────────────────────┐
+                    │                Phase 5: Skill Evolution 📋            │
+                    │  👁️ Correction Observer → 📊 Evolution Report → 🔄    │
+                    └─────────────────────────────────────────────────────┘
+                                              ▲
+                    ┌─────────────────────────────────────────────────────┐
                     │                   Phase 4: 进化 ✅                    │
                     │    🔄 模式检测 → Skill 生成 → 偏好学习 → 元认知        │
                     └─────────────────────────────────────────────────────┘
@@ -438,3 +443,25 @@ UserPreference ← PreferenceLearner                              Metacognition 
 | Phase 2.5 | ✅ 完成 | 代码质量清理 + CLI 模块化 + PID 管理 |
 | Phase 3 | ✅ 完成 | Tool Registry + 工具调用 + 安全控制 |
 | Phase 4 | ✅ 完成 | 模式检测 + Skill 自生成 + 偏好学习 + 元认知 |
+| Phase 4.5 | 📋 1-2 天 | Context Window 管理（token-aware 截取 + LLM 压缩 + fallback） |
+| Phase 5 | 📋 ~2 周 | Skill Evolution Observer + 主动提醒 + 闭环优化 |
+
+---
+
+### 🧬 Phase 5: Skill Evolution Observer 📋
+
+> **里程碑**：Agent 能监控 skill 执行后的人工修正，自动积累 Evolution Log，主动建议优化
+
+**核心目标**：Phase 4 = 创建 skill (0→1)，Phase 5 = 优化 skill (v1→v2)。完整的 skill 生命周期管理。
+
+**P0 验证已通过** (2026-03-04)：手工对 blog-writer 和 memory-keeper 各收集 5 条 git diff 信号，分别产出 3 个有效 patch。
+
+| 子阶段 | 内容 | 预估 |
+|--------|------|------|
+| P5.1 | SkillEvolutionObserver — 静默采集 (复用 daemon think loop + git log) | 3-5 天 |
+| P5.2 | Evolution Report + 主动提醒 (累积 ≥5 条信号通知) | 3-5 天 |
+| P5.3 | CLI 闭环 (`jarvis skill evolve <name>`) | 2-3 天 |
+
+**新增模块**：`src/evolution/skill_evolution.py`（不重写，加一层）
+
+→ 完整规划详见 [Phase 5 设计文档](docs/plans/2026-03-04-phase5-skill-evolution-design.md)
