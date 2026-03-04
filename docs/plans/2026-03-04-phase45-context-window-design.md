@@ -34,8 +34,12 @@ RESPONSE_RESERVE = 4096
 SYSTEM_RESERVE = 4000
 
 def _estimate_tokens(self, text: str) -> int:
-    """保守估算 token 数"""
-    return len(text) // 2
+    """保守估算 token 数
+    中文字符按 1 token，ASCII 按 0.25 token
+    """
+    cjk = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+    ascii_chars = len(text) - cjk
+    return cjk + ascii_chars // 4
 
 def _fit_messages_to_window(self, system_msg, messages, max_tokens):
     """按 token 预算从后往前填充"""
@@ -76,11 +80,26 @@ async def _compact_messages(self, messages, keep_recent=6):
         if m.get("role") in ("user", "assistant") and m.get("content")
     )
     
-    summary = await self.simple_ask(
+    summary = await self._compact_summarize(
         self.COMPACTION_SUMMARY_PROMPT.format(conversation=conversation)
     )
     
     return [{"role": "system", "content": f"[对话摘要] {summary}"}] + recent
+
+async def _compact_summarize(self, prompt: str) -> str:
+    """独立的摘要调用，不走 chat_with_tools，避免递归”””
+    async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
+        response = await client.post(
+            f"{self.base_url}/v1/chat/completions",
+            headers={"Authorization": f"Bearer {self.auth_token}"},
+            json={
+                "model": self.model,
+                "max_tokens": 512,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+        )
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
 ```
 
 ### Layer 3: Graceful Fallback
@@ -99,11 +118,10 @@ if response.status_code == 400:
 
 ## 改动清单
 
-| 文件 | 改动 |
-|------|------|
-| `src/llm/__init__.py` | +`_estimate_tokens()`, +`_fit_messages_to_window()`, +`_compact_messages()`, 改 `chat_with_tools()` 集成三层防御 |
-
-只改 **一个文件**。
+| 文件 | 改动 | 优先级 |
+|------|------|--------|
+| `src/llm/__init__.py` | 三层防御核心 + `_compact_summarize` 独立调用(避免递归) | 必须 |
+| `src/cli/chat.py` | compaction 时显示 `📦 对话已压缩` 提示 | nice-to-have |
 
 ## 验收标准
 
